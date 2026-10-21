@@ -81,7 +81,7 @@ npm run build
 npx wrangler deploy
 ```
 
-`public/_redirects` is kept for hosts that use the Pages convention; the Worker's `assets.not_found_handling` setting handles the SPA fallback here. Any static host with an SPA fallback works too (Netlify, GitHub Pages with a 404 fallback, etc.).
+The SPA fallback comes from `wrangler.jsonc` (`assets.not_found_handling: "single-page-application"`), not a `_redirects` file — Workers static assets rejects the classic `/* /index.html 200` Pages rule as an infinite loop. Any static host with an SPA fallback works too (Netlify, GitHub Pages with a 404 fallback, etc.).
 
 ## Notes
 
