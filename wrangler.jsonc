@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "repractice",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist/cf-repractice/browser",
+    "not_found_handling": "single-page-application"
+  }
+}

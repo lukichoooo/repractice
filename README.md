@@ -58,26 +58,30 @@ npm test          # unit tests (analysis engine + app shell)
 
 The analysis engine lives in `src/app/core/analysis.ts` and is covered by fixtures in `analysis.spec.ts`.
 
-## Deploy to Cloudflare Pages
+## Deploy to Cloudflare
 
-### Option A — connect a Git repository (recommended)
+This repo ships a `wrangler.jsonc` that serves the Angular build as a **Worker with static assets** and sets the SPA fallback, so deep links like `/u/tourist` work.
+
+### Option A — Workers Builds (Git-connected, recommended)
 
 1. Push this repo to GitHub/GitLab.
-2. In Cloudflare Pages, create a project and connect the repo.
-3. Build command: `npm run build`
-4. Build output directory: `dist/cf-repractice/browser`
-5. Node version: 22+ (Angular 22 supports Node 20.19+, 22.12+ or 24+; `.nvmrc` pins 22).
+2. In Cloudflare **Workers & Pages → Create → Workers → Connect to Git**, pick the repo.
+3. Build settings:
+   - **Build command:** `npm run build`
+   - **Deploy command:** `npx wrangler deploy`
+   - **Node version:** 22+ (Angular 22 supports Node 20.19+, 22.12+ or 24+; `.nvmrc` pins 22)
+4. Deploy, then enable a URL under **Settings → Domains & Routes** (`workers.dev` or a custom domain).
 
-`public/_redirects` contains the SPA fallback (`/* /index.html 200`), so deep links like `/u/tourist` work.
+Every push to `main` redeploys automatically.
 
-### Option B — direct upload
+### Option B — deploy from your machine
 
 ```bash
 npm run build
-npx wrangler pages deploy dist/cf-repractice/browser
+npx wrangler deploy
 ```
 
-Any static host with an SPA fallback works too (Netlify, GitHub Pages with a 404 fallback, etc.).
+`public/_redirects` is kept for hosts that use the Pages convention; the Worker's `assets.not_found_handling` setting handles the SPA fallback here. Any static host with an SPA fallback works too (Netlify, GitHub Pages with a 404 fallback, etc.).
 
 ## Notes
 
