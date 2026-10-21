@@ -1,0 +1,142 @@
+<div class="practice">
+  @let a = analysis();
+
+  <section class="practice-hero panel">
+    <div class="hero-copy">
+      <p class="eyebrow">Practice builder</p>
+      <h2>Fresh problems, matched to your weak spots.</h2>
+      <p>
+        Built from your six weakest topics and your current rating. Problems you have already
+        attempted are excluded — those belong in the Struggles tab.
+      </p>
+      <div class="weak-chips">
+        @for (tag of weakTags(); track tag.tag) {
+          <span class="weak-chip">
+            {{ tag.tag }}
+            <span>{{ (tag.failureRate * 100).toFixed(0) }}%</span>
+          </span>
+        } @empty {
+          <span class="muted">Not enough tag data yet — picks will be rating-based.</span>
+        }
+      </div>
+    </div>
+
+    <div class="target-card">
+      <span class="target-label">Target problem rating</span>
+      <strong class="target-value" [style.color]="ratingColor(targetRating())">
+        {{ targetRating() }}
+      </strong>
+      <span class="target-sub">
+        @if (a.totals.currentRating) {
+          your rating {{ a.totals.currentRating }}
+        } @else {
+          estimated from your solved problems
+        }
+      </span>
+      <div class="shift-buttons" role="group" aria-label="Target difficulty">
+        <button
+          type="button"
+          [class.active]="targetShift() === -200"
+          (click)="setShift(-200)"
+        >
+          Comfort
+        </button>
+        <button type="button" [class.active]="targetShift() === 0" (click)="setShift(0)">
+          On level
+        </button>
+        <button
+          type="button"
+          [class.active]="targetShift() === 200"
+          (click)="setShift(200)"
+        >
+          Stretch
+        </button>
+      </div>
+    </div>
+  </section>
+
+  @if (loading()) {
+    <div class="rec-grid" aria-label="Loading recommendations">
+      @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+        <div class="rec-card skeleton-card">
+          <div class="skeleton skeleton-line short"></div>
+          <div class="skeleton skeleton-line title"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-line tiny"></div>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <div class="panel error-panel">
+      <div class="empty-state">
+        <strong>Could not build a practice set.</strong>
+        <p>{{ error() }}</p>
+        <button type="button" class="btn btn-sm" (click)="retry()">Try again</button>
+      </div>
+    </div>
+  } @else {
+    <div class="controls">
+      <p>
+        <strong>{{ recommendations().length }}</strong> fresh picks around
+        <strong>{{ targetRating() }}</strong>
+      </p>
+      <div class="control-actions">
+        <button type="button" class="btn btn-sm" (click)="newPicks()">
+          <span aria-hidden="true">↻</span> New picks
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          (click)="surpriseMe()"
+          [disabled]="!recommendations().length"
+        >
+          Surprise me <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </div>
+
+    @if (recommendations().length) {
+      <div class="rec-grid">
+        @for (pick of recommendations(); track pick.problem.contestId + '-' + pick.problem.index) {
+          <article class="rec-card">
+            <div class="rec-top">
+              <span class="rec-code">{{ pick.problem.contestId }}{{ pick.problem.index }}</span>
+              <span class="rec-rating" [style.color]="ratingColor(pick.problem.rating)">
+                {{ pick.problem.rating }}
+              </span>
+            </div>
+            <a class="rec-name" [href]="pick.url" target="_blank" rel="noreferrer">
+              {{ pick.problem.name }}
+            </a>
+            <div class="rec-tags">
+              @for (tag of pick.problem.tags.slice(0, 4); track tag) {
+                <span class="chip" [class.matched]="pick.matchedTags.includes(tag)">
+                  {{ tag }}
+                </span>
+              }
+            </div>
+            <div class="rec-foot">
+              <span class="rec-solvers">{{ formatNumber(pick.solvedCount) }} solvers</span>
+              <a class="rec-link" [href]="pick.url" target="_blank" rel="noreferrer">
+                Solve <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </article>
+        }
+      </div>
+
+      <p class="practice-note">
+        Recommendations come from the public Codeforces problemset, filtered to your target rating
+        ±320. Highlighted tags match your weakest topics. The list refreshes from cache for 24 hours.
+      </p>
+    } @else {
+      <div class="panel">
+        <div class="empty-state">
+          <strong>No fresh problems match this target.</strong>
+          <p>Try a different difficulty level or come back after your rating changes.</p>
+          <button type="button" class="btn btn-sm" (click)="setShift(0)">Reset target</button>
+        </div>
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,251 @@
+<section class="hero">
+  <div class="shell hero-grid">
+    <div class="hero-copy fade-in">
+      <p class="eyebrow">Codeforces · deliberate practice</p>
+      <h1>Find the problems<br />that <span class="accent">beat you.</span></h1>
+      <p class="hero-lede">
+        Enter your Codeforces handle. We read your public submission history, surface every problem
+        that took too many tries, and show you exactly how long ago it was — so you know what to
+        solve again.
+      </p>
+
+      <form class="search-box" (ngSubmit)="submit()">
+        <label class="search-input-wrap">
+          <span class="at" aria-hidden="true">@</span>
+          <input
+            class="search-input"
+            name="handle"
+            [ngModel]="handle()"
+            (ngModelChange)="handle.set($event)"
+            placeholder="your Codeforces handle"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-label="Codeforces handle"
+          />
+        </label>
+        <button class="btn btn-primary search-btn" type="submit">
+          Analyze my history
+          <span aria-hidden="true">→</span>
+        </button>
+      </form>
+
+      @if (error()) {
+        <p class="form-error" role="alert">{{ error() }}</p>
+      }
+
+      <div class="quick-row">
+        <span class="quick-label">Try</span>
+        <button type="button" class="quick-chip" (click)="useHandle('tourist')">tourist</button>
+        <button type="button" class="quick-chip" (click)="useHandle('Benq')">Benq</button>
+        <button type="button" class="quick-chip" (click)="useHandle('Radewoosh')">Radewoosh</button>
+      </div>
+
+      @if (recent().length) {
+        <div class="recent-row">
+          <span class="quick-label">Recent</span>
+          <div class="recent-chips">
+            @for (item of recent(); track item) {
+              <button type="button" class="quick-chip recent-chip" (click)="useHandle(item)">
+                {{ item }}
+              </button>
+            }
+            <button type="button" class="clear-btn" (click)="clearRecent()">clear</button>
+          </div>
+        </div>
+      }
+
+      <ul class="trust-list">
+        <li><span class="dot"></span>No login</li>
+        <li><span class="dot"></span>Public data only</li>
+        <li><span class="dot"></span>Cached in your browser</li>
+      </ul>
+    </div>
+
+    <div class="preview-wrap fade-in" aria-hidden="true">
+      <div class="glow"></div>
+      <div class="preview-card">
+        <div class="preview-top">
+          <div>
+            <p class="preview-eyebrow">Example report</p>
+            <p class="preview-handle">@your_handle</p>
+          </div>
+          <span class="preview-live"><span class="live-dot"></span> analyzed</span>
+        </div>
+
+        <div class="preview-stats">
+          <div>
+            <strong>12</strong>
+            <span>must redo</span>
+          </div>
+          <div>
+            <strong>28</strong>
+            <span>should redo</span>
+          </div>
+          <div>
+            <strong>61%</strong>
+            <span>first-try rate</span>
+          </div>
+        </div>
+
+        <div class="preview-list">
+          <div class="preview-row">
+            <div class="preview-problem">
+              <span class="problem-code">1741E</span>
+              <span class="problem-name">Sending a Sequence Over the Network</span>
+            </div>
+            <div class="preview-meta">
+              <span class="fails">14 fails</span>
+              <span class="tier tier-must">Must redo</span>
+            </div>
+            <span class="preview-age">2y 4m ago</span>
+          </div>
+          <div class="preview-row">
+            <div class="preview-problem">
+              <span class="problem-code">1632D</span>
+              <span class="problem-name">New Year Concert</span>
+            </div>
+            <div class="preview-meta">
+              <span class="fails">8 fails</span>
+              <span class="tier tier-should">Should redo</span>
+            </div>
+            <span class="preview-age">1y 1m ago</span>
+          </div>
+          <div class="preview-row">
+            <div class="preview-problem">
+              <span class="problem-code">1620C</span>
+              <span class="problem-name">BA-String</span>
+            </div>
+            <div class="preview-meta">
+              <span class="fails">4 fails</span>
+              <span class="tier tier-maybe">Maybe redo</span>
+            </div>
+            <span class="preview-age">8mo ago</span>
+          </div>
+          <div class="preview-row">
+            <div class="preview-problem">
+              <span class="problem-code">1492C</span>
+              <span class="problem-name">Maximum width</span>
+            </div>
+            <div class="preview-meta">
+              <span class="fails">6 fails</span>
+              <span class="tier tier-open">Never solved</span>
+            </div>
+            <span class="preview-age">3y ago</span>
+          </div>
+        </div>
+
+        <div class="preview-footer">
+          <span>Weakest topic</span>
+          <strong>dynamic programming</strong>
+          <span class="preview-topic-bar"><span></span></span>
+          <em>42% failure rate</em>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features shell">
+  <div class="section-head">
+    <p class="eyebrow">What you get</p>
+    <h2>An honest mirror for your practice.</h2>
+    <p>Most submission stats count solved problems. This one counts the pain it took to get there.</p>
+  </div>
+
+  <div class="feature-grid">
+    <article class="feature-card">
+      <span class="feature-index">01</span>
+      <h3>Struggle radar</h3>
+      <p>
+        Every problem grouped by its failed submissions, with your exact thresholds:
+        10+ must redo, 5+ should redo, 2+ might need another look.
+      </p>
+      <div class="mini-tiers">
+        <span class="tier tier-must">10+</span>
+        <span class="tier tier-should">5–9</span>
+        <span class="tier tier-maybe">2–4</span>
+      </div>
+    </article>
+
+    <article class="feature-card">
+      <span class="feature-index">02</span>
+      <h3>Time since you tried</h3>
+      <p>
+        A hard problem from three years ago is a different problem today. See the last attempt and
+        the first solve for every struggle, sorted by what is going stale.
+      </p>
+      <div class="mini-age"><span>2y 4m ago</span><i></i><span>1y 1m ago</span></div>
+    </article>
+
+    <article class="feature-card">
+      <span class="feature-index">03</span>
+      <h3>Weakness, not vibes</h3>
+      <p>
+        Failure rates by tag, attempts by difficulty, verdict breakdowns, contest vs practice —
+        the patterns behind the failed submissions.
+      </p>
+      <div class="mini-bars">
+        <span style="--w: 82%"></span>
+        <span style="--w: 61%"></span>
+        <span style="--w: 44%"></span>
+      </div>
+    </article>
+
+    <article class="feature-card">
+      <span class="feature-index">04</span>
+      <h3>What to solve next</h3>
+      <p>
+        Unsolved problems from your weakest topics, around your rating. Fresh practice instead of
+        scrolling the problemset aimlessly.
+      </p>
+      <div class="mini-pick">
+        <span class="mono">1920E</span>
+        <span>dp · constructive</span>
+        <span class="pick-arrow">→</span>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="how shell">
+  <div class="how-copy">
+    <p class="eyebrow">How it works</p>
+    <h2>Three seconds of typing.<br />A much better practice list.</h2>
+  </div>
+  <div class="how-steps">
+    <div class="how-step">
+      <span class="step-number">01</span>
+      <div>
+        <h3>Enter your handle</h3>
+        <p>We look up your public profile. No password, no account, no cookies.</p>
+      </div>
+    </div>
+    <div class="how-step">
+      <span class="step-number">02</span>
+      <div>
+        <h3>We read every submission</h3>
+        <p>
+          The app groups attempts by problem, counts failures, and respects Codeforces' rate limit.
+        </p>
+      </div>
+    </div>
+    <div class="how-step">
+      <span class="step-number">03</span>
+      <div>
+        <h3>You get a repractice plan</h3>
+        <p>Old struggles first, weak topics ranked, and fresh problems matched to your level.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta shell">
+  <div class="cta-inner">
+    <div>
+      <p class="eyebrow">Ready?</p>
+      <h2>Your next practice session starts with an honest look.</h2>
+    </div>
+    <button class="btn btn-primary" type="button" (click)="scrollToTop()">Analyze a handle</button>
+  </div>
+</section>

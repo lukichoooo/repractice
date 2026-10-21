@@ -1,0 +1,30 @@
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="shell header-inner">
+    <a routerLink="/" class="brand" aria-label="Codeforces Repractice home">
+      <span class="brand-mark" aria-hidden="true">CF</span>
+      <span class="brand-name">repractice<span class="brand-dot">.</span></span>
+    </a>
+
+    <div class="header-right">
+      <span class="header-pill">Codeforces analyzer</span>
+      <a routerLink="/" class="header-link">New analysis</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <router-outlet />
+</main>
+
+<footer class="site-footer">
+  <div class="shell footer-inner">
+    <p>Built for deliberate practice. Not affiliated with Codeforces.</p>
+    <p>
+      Public data via the
+      <a href="https://codeforces.com/apiHelp" target="_blank" rel="noreferrer">Codeforces API</a>
+      · nothing is stored on a server.
+    </p>
+  </div>
+</footer>

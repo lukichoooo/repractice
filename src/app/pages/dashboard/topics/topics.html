@@ -1,0 +1,162 @@
+<div class="topics">
+  @let a = analysis();
+
+  <div class="chart-row">
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <h2>Topics with the most waste</h2>
+          <p class="panel-sub">Share of submissions in each tag that were not accepted</p>
+        </div>
+        <span class="panel-tag">top 8</span>
+      </header>
+      <div class="chart-body">
+        @if (a.tags.length) {
+          <app-chart [options]="chartTags()" height="296px" ariaLabel="Failure rate by topic" />
+        } @else {
+          <div class="empty-state"><strong>No topic data yet.</strong></div>
+        }
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <h2>Failure modes</h2>
+          <p class="panel-sub">What actually went wrong</p>
+        </div>
+      </header>
+      <div class="chart-body compact">
+        @if (a.verdicts.length) {
+          <app-chart [options]="chartVerdicts()" height="230px" ariaLabel="Failures by verdict" />
+          <div class="verdict-list">
+            @for (verdict of topVerdicts(); track verdict.verdict) {
+              <div class="verdict-row">
+                <span class="verdict-name">{{ verdictLabel(verdict.verdict) }}</span>
+                <span class="verdict-count">{{ formatNumber(verdict.count) }}</span>
+                <span class="verdict-share">{{ formatPercent(verdict.share) }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="empty-state"><strong>No failed submissions.</strong></div>
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <header class="panel-header">
+      <div>
+        <h2>Weakest topics in detail</h2>
+        <p class="panel-sub">Sorted by failure rate, average failures and unsolved volume</p>
+      </div>
+      <span class="panel-tag">min. 2 problems</span>
+    </header>
+
+    @if (weakTags().length) {
+      <div class="tag-table-wrap">
+        <table class="tag-table">
+          <thead>
+            <tr>
+              <th>Topic</th>
+              <th>Problems</th>
+              <th>Solved</th>
+              <th>Failure rate</th>
+              <th>Avg failures</th>
+              <th>Average to first AC</th>
+              <th>Main verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tag of weakTags(); track tag.tag) {
+              <tr>
+                <td><span class="tag-name">{{ tag.tag }}</span></td>
+                <td class="num">{{ tag.problems }}</td>
+                <td class="num">{{ tag.solved }}/{{ tag.problems }}</td>
+                <td class="rate-cell">
+                  <div class="rate-wrap">
+                    <span class="rate-bar"><span [style.width.%]="tag.failureRate * 100"></span></span>
+                    <span class="rate-value">{{ formatPercent(tag.failureRate) }}</span>
+                  </div>
+                </td>
+                <td class="num">{{ tag.avgFailures.toFixed(1) }}</td>
+                <td class="num">{{ tag.avgFailuresToSolve.toFixed(1) }}</td>
+                <td>
+                  @if (tag.topVerdict) {
+                    <span class="mono verdict-mini">{{ verdictLabel(tag.topVerdict) }}</span>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <strong>Not enough tagged problems.</strong>
+        <p>Attempt at least two problems sharing a tag to unlock this breakdown.</p>
+      </div>
+    }
+  </section>
+
+  <section class="panel">
+    <header class="panel-header">
+      <div>
+        <h2>Difficulty vs. failures</h2>
+        <p class="panel-sub">Each dot is a problem. Higher dots took more failed submissions.</p>
+      </div>
+      <div class="legend-inline">
+        <span><i class="dot-solved"></i> solved</span>
+        <span><i class="dot-open"></i> never solved</span>
+      </div>
+    </header>
+    <div class="chart-body">
+      <app-chart [options]="chartDifficulty()" height="330px" ariaLabel="Failures by problem rating" />
+    </div>
+  </section>
+
+  <div class="bottom-row">
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <h2>Rating buckets</h2>
+          <p class="panel-sub">Where your attempts and solves concentrate</p>
+        </div>
+      </header>
+      <div class="bucket-list">
+        @for (bucket of a.ratingBuckets; track bucket.label) {
+          <div class="bucket-row">
+            <span class="bucket-label">{{ bucket.label }}</span>
+            <span class="bucket-problems">{{ bucket.problems }} problems</span>
+            <span class="bucket-bar"><span [style.width.%]="bucket.failureRate * 100"></span></span>
+            <span class="bucket-rate">{{ formatPercent(bucket.failureRate) }}</span>
+            <span class="bucket-avg">{{ bucket.avgFailures.toFixed(1) }} avg</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <h2>Your stronger topics</h2>
+          <p class="panel-sub">Lowest failure rates with at least 3 problems</p>
+        </div>
+      </header>
+      <div class="strong-list">
+        @for (tag of strongestTags(); track tag.tag) {
+          <div class="strong-row">
+            <span class="strong-name">{{ tag.tag }}</span>
+            <span class="strong-meta">{{ tag.problems }} problems · {{ formatPercent(tag.solveRate) }} solved</span>
+            <span class="strong-rate">{{ formatPercent(tag.failureRate) }} failed</span>
+          </div>
+        } @empty {
+          <div class="empty-state"><strong>Not enough data yet.</strong></div>
+        }
+      </div>
+    </section>
+  </div>
+</div>

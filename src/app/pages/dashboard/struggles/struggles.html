@@ -1,0 +1,336 @@
+<div class="struggles">
+  @let a = analysis();
+
+  <section class="toolbar panel">
+    <div class="toolbar-top">
+      <div class="search-field">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input
+          type="search"
+          class="search-input"
+          placeholder="Search problem, code or tag…"
+          [value]="search()"
+          (input)="setSearch(inputValue($event))"
+          aria-label="Search problems"
+        />
+      </div>
+
+      <div class="selects">
+        <label class="select-label">
+          <span>Sort</span>
+          <select class="field" [value]="sort()" (change)="setSort(selectValue($event))">
+            <option value="priority">Priority</option>
+            <option value="failures">Most failures</option>
+            <option value="oldest">Oldest attempt</option>
+            <option value="newest">Newest attempt</option>
+            <option value="rating">Highest rating</option>
+          </select>
+        </label>
+
+        <label class="select-label">
+          <span>Rating</span>
+          <select
+            class="field"
+            [value]="ratingFilter()"
+            (change)="setRating(selectValue($event))"
+          >
+            <option value="all">Any rating</option>
+            <option value="lt1200">&lt; 1200</option>
+            <option value="1200-1599">1200–1599</option>
+            <option value="1600-1999">1600–1999</option>
+            <option value="2000-2399">2000–2399</option>
+            <option value="2400plus">2400+</option>
+            <option value="unrated">Unrated</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="filter-chips" role="group" aria-label="Filter by struggle level">
+      @for (chip of chips(); track chip.id) {
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="tierFilter() === chip.id"
+          [style.border-color]="tierFilter() === chip.id ? chip.color : null"
+          [style.color]="tierFilter() === chip.id ? chip.color : null"
+          (click)="setTier(chip.id)"
+        >
+          <span class="chip-dot" [style.background]="chip.color"></span>
+          {{ chip.label }}
+          <span class="chip-count">{{ chip.count }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="result-line">
+      <p>
+        <strong>{{ filtered().length }}</strong>
+        {{ filtered().length === 1 ? 'problem' : 'problems' }}
+        @if (tierFilter() === 'action') {
+          in your needs-work list
+        } @else if (tierFilter() !== 'all') {
+          in this bucket
+        }
+      </p>
+      <div class="result-actions">
+        <span class="mode-label">Counting</span>
+        <div class="mode-toggle" role="group" aria-label="Failure counting mode">
+          <button
+            type="button"
+            [class.active]="countMode() === 'all'"
+            (click)="setCountMode('all')"
+          >
+            All failures
+          </button>
+          <button
+            type="button"
+            [class.active]="countMode() === 'pre'"
+            (click)="setCountMode('pre')"
+            title="Ignore failures submitted after the problem was first accepted"
+          >
+            Pre-AC only
+          </button>
+        </div>
+        <button type="button" class="reset-btn" (click)="reset()">Reset filters</button>
+      </div>
+    </div>
+  </section>
+
+  @if (visible().length) {
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-problem">Problem</th>
+            <th class="col-rating">Rating</th>
+            <th class="col-fails">
+              Failed
+              <span class="th-sub">{{ countMode() === 'pre' ? 'pre-AC' : 'all-time' }}</span>
+            </th>
+            <th class="col-acs">ACs</th>
+            <th class="col-last">Last attempt</th>
+            <th class="col-first">First solved</th>
+            <th class="col-tier">Status</th>
+            <th class="col-expand"><span class="sr-only">Details</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (problem of visible(); track problem.key) {
+            <tr
+              class="problem-row"
+              [class.is-expanded]="expanded() === problem.key"
+              (click)="toggle(problem.key)"
+              (keydown.enter)="toggle(problem.key)"
+              (keydown.space)="$event.preventDefault(); toggle(problem.key)"
+              tabindex="0"
+              role="button"
+              [attr.aria-expanded]="expanded() === problem.key"
+            >
+              <td class="col-problem">
+                <div class="problem-main">
+                  <a
+                    class="problem-name"
+                    [href]="problem.url"
+                    target="_blank"
+                    rel="noreferrer"
+                    (click)="$event.stopPropagation()"
+                  >
+                    {{ problem.name }}
+                  </a>
+                  <div class="problem-sub">
+                    <span class="mono">{{ problem.contestId }}{{ problem.index }}</span>
+                    @if (problem.tags.length) {
+                      <span class="sub-dot"></span>
+                      <span class="problem-tags">{{ problem.tags.slice(0, 3).join(' · ') }}</span>
+                    }
+                    @if (problem.solvedInContest) {
+                      <span class="contest-flag">solved in contest</span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <td class="col-rating">
+                @if (problem.rating) {
+                  <span class="problem-rating" [style.color]="ratingColor(problem.rating)">
+                    {{ problem.rating }}
+                  </span>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+
+              <td class="col-fails">
+                <span class="fail-count">{{ problem.viewFailures }}</span>
+                @if (countMode() === 'pre') {
+                  <span class="fail-detail">{{ problem.failures }} all-time</span>
+                } @else if (problem.failuresBeforeFirstAC !== problem.failures) {
+                  <span class="fail-detail">{{ problem.failuresBeforeFirstAC }} pre-AC</span>
+                } @else {
+                  <span class="fail-detail">all pre-AC</span>
+                }
+              </td>
+
+              <td class="col-acs">
+                <span class="ac-count">{{ problem.acs }}</span>
+                <span class="fail-detail">{{ problem.submissions }} subs</span>
+              </td>
+
+              <td class="col-last">
+                <span class="age">{{ timeAgo(problem.lastSubmission, a.now) }}</span>
+                <span class="age-date">{{ formatDate(problem.lastSubmission) }}</span>
+              </td>
+
+              <td class="col-first">
+                @if (problem.firstAC) {
+                  <span class="age">{{ timeAgo(problem.firstAC, a.now) }}</span>
+                  <span class="age-date">{{ formatDate(problem.firstAC) }}</span>
+                } @else {
+                  <span class="never-solved">never</span>
+                }
+              </td>
+
+              <td class="col-tier">
+                <span
+                  class="tier-tag"
+                  [style.color]="tierMeta[problem.viewTier].color"
+                  [style.border-color]="tierMeta[problem.viewTier].color + '4d'"
+                  [style.background]="tierMeta[problem.viewTier].color + '17'"
+                >
+                  {{ tierMeta[problem.viewTier].label }}
+                </span>
+              </td>
+
+              <td class="col-expand">
+                <span class="chevron" [class.open]="expanded() === problem.key" aria-hidden="true">
+                  ⌄
+                </span>
+              </td>
+            </tr>
+
+            @if (expanded() === problem.key) {
+              <tr class="detail-row">
+                <td colspan="8">
+                  <div class="detail">
+                    <div class="detail-top">
+                      <div class="detail-stats">
+                        <div class="detail-stat">
+                          <span>All failures</span>
+                          <strong class="danger">{{ problem.failures }}</strong>
+                        </div>
+                        <div class="detail-stat">
+                          <span>Before first AC</span>
+                          <strong>{{ problem.failuresBeforeFirstAC }}</strong>
+                        </div>
+                        <div class="detail-stat">
+                          <span>Submissions</span>
+                          <strong>{{ problem.submissions }}</strong>
+                        </div>
+                        <div class="detail-stat">
+                          <span>Accepted</span>
+                          <strong class="green">{{ problem.acs }}</strong>
+                        </div>
+                        <div class="detail-stat">
+                          <span>Contest / practice</span>
+                          <strong>{{ problem.contestSubmissions }} / {{ problem.practiceSubmissions }}</strong>
+                        </div>
+                        <div class="detail-stat">
+                          <span>Last failure</span>
+                          <strong>{{ timeAgo(problem.lastFailure, a.now) }}</strong>
+                        </div>
+                      </div>
+
+                      <div class="detail-side">
+                        <div class="detail-tags">
+                          @for (tag of problem.tags; track tag) {
+                            <span class="chip">{{ tag }}</span>
+                          }
+                        </div>
+                        <div class="verdict-breakdown">
+                          <span class="detail-label">Verdicts</span>
+                          <div class="verdict-chips">
+                            @for (verdict of problem.verdicts; track verdict.verdict) {
+                              <span class="verdict-chip">
+                                <span [class]="verdictBadgeClass(verdict.verdict)">
+                                  {{ verdictShort(verdict.verdict) }}
+                                </span>
+                                <span>{{ verdict.count }}</span>
+                                <span class="verdict-name">{{ verdictLabel(verdict.verdict) }}</span>
+                              </span>
+                            } @empty {
+                              <span class="muted">No failed submissions.</span>
+                            }
+                          </div>
+                        </div>
+                        <div class="detail-actions">
+                          <a class="btn btn-sm" [href]="problem.url" target="_blank" rel="noreferrer">
+                            Open on Codeforces ↗
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="timeline">
+                      <div class="timeline-head">
+                        <span class="detail-label">Attempt timeline</span>
+                        <span class="timeline-note">oldest → newest · {{ problem.attempts.length }} submissions</span>
+                      </div>
+                      <div class="attempt-list">
+                        @for (attempt of problem.attempts; track attempt.id) {
+                          <div class="attempt" [class.is-ac]="attempt.verdict === 'OK'">
+                            <span class="attempt-dot"></span>
+                            <span class="attempt-date">
+                              {{ formatDate(attempt.time) }}
+                              <small>{{ formatTime(attempt.time) }}</small>
+                            </span>
+                            <span [class]="verdictBadgeClass(attempt.verdict)">
+                              {{ attempt.verdict === 'OK' ? 'AC' : verdictShort(attempt.verdict) }}
+                            </span>
+                            <span class="attempt-lang">{{ attempt.language }}</span>
+                            <span class="attempt-metrics">
+                              {{ formatDuration(attempt.timeMs) }} · {{ attempt.memoryKb }} KB
+                            </span>
+                            <span class="attempt-type" [class.contest]="attempt.contest">
+                              {{ attempt.contest ? 'contest' : 'practice' }}
+                            </span>
+                            <a
+                              class="attempt-link"
+                              [href]="submissionUrl(problem.contestId, attempt.id)"
+                              target="_blank"
+                              rel="noreferrer"
+                              (click)="$event.stopPropagation()"
+                            >
+                              #{{ attempt.id }} ↗
+                            </a>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (hasMore()) {
+      <div class="load-more">
+        <button type="button" class="btn" (click)="loadMore()">
+          Load 50 more
+          <span class="muted">({{ filtered().length - visible().length }} remaining)</span>
+        </button>
+      </div>
+    }
+  } @else {
+    <div class="panel">
+      <div class="empty-state">
+        <strong>No problems match these filters.</strong>
+        <p>Try a different bucket, rating range, or clear the search.</p>
+        <button type="button" class="btn btn-sm" (click)="reset()">Reset filters</button>
+      </div>
+    </div>
+  }
+</div>

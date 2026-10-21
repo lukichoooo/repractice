@@ -1,0 +1,194 @@
+<div class="overview">
+  @let a = analysis();
+  <section class="stat-grid" aria-label="Key numbers">
+    <article class="stat-card">
+      <p class="stat-label">Problems attempted</p>
+      <p class="stat-value">{{ formatNumber(a.totals.attempts) }}</p>
+      <p class="stat-sub">{{ formatNumber(a.totals.solved) }} solved · {{ formatNumber(a.totals.unsolved) }} open</p>
+    </article>
+
+    <article class="stat-card">
+      <p class="stat-label">First-try solve rate</p>
+      <p class="stat-value">{{ formatPercent(a.totals.firstTryRate) }}</p>
+      <p class="stat-sub">{{ formatNumber(a.totals.firstTrySolves) }} of {{ formatNumber(a.totals.solved) }} solved problems</p>
+    </article>
+
+    <article class="stat-card">
+      <p class="stat-label">Failed submissions</p>
+      <p class="stat-value">{{ formatNumber(a.totals.failures) }}</p>
+      <p class="stat-sub">out of {{ formatNumber(a.totals.submissions) }} total submissions</p>
+    </article>
+
+    <article class="stat-card stat-card-danger">
+      <p class="stat-label">Must redo</p>
+      <p class="stat-value">{{ formatNumber(a.totals.mustRedo) }}</p>
+      <p class="stat-sub">problems with 10+ failures</p>
+    </article>
+
+    <article class="stat-card stat-card-warn">
+      <p class="stat-label">Stale struggles</p>
+      <p class="stat-value">{{ formatNumber(a.totals.staleStruggles) }}</p>
+      <p class="stat-sub">5+ failures, untouched 6+ months</p>
+    </article>
+
+    <article class="stat-card stat-card-purple">
+      <p class="stat-label">Never solved</p>
+      <p class="stat-value">{{ formatNumber(a.totals.neverSolved) }}</p>
+      <p class="stat-sub">2+ attempts with no accepted submission</p>
+    </article>
+  </section>
+
+  <div class="two-col">
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <h2>Top struggles</h2>
+          <p class="panel-sub">Sorted by severity, then by the oldest last attempt</p>
+        </div>
+        <button type="button" class="link-button" (click)="go('struggles')">
+          View all <span aria-hidden="true">→</span>
+        </button>
+      </header>
+
+      @if (topStruggles().length) {
+        <div class="mini-list">
+          @for (problem of topStruggles(); track problem.key; let index = $index) {
+            <a class="mini-row" [href]="problem.url" target="_blank" rel="noreferrer">
+              <span class="mini-index">{{ (index + 1).toString().padStart(2, '0') }}</span>
+              <span class="mini-problem">
+                <span class="mini-name">{{ problem.name }}</span>
+                <span class="mini-code">
+                  {{ problem.contestId }}{{ problem.index }}
+                  @if (problem.rating) {
+                    <span class="rating-dot" [style.color]="ratingColor(problem.rating)">
+                      · {{ problem.rating }}
+                    </span>
+                  }
+                </span>
+              </span>
+              <span
+                class="tier-tag"
+                [style.color]="tierMeta[problem.tier].color"
+                [style.border-color]="tierMeta[problem.tier].color + '4d'"
+                [style.background]="tierMeta[problem.tier].color + '17'"
+              >
+                {{ tierMeta[problem.tier].label }}
+              </span>
+              <span class="mini-fails">{{ problem.failures }}<small>fails</small></span>
+              <span class="mini-age">{{ timeAgo(problem.lastSubmission, a.now) }}</span>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <strong>No struggles yet.</strong>
+          <p>Once you have failed attempts, the problems will show up here.</p>
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <h2>Weakest topics</h2>
+          <p class="panel-sub">Ranked by failure rate and volume</p>
+        </div>
+        <button type="button" class="link-button" (click)="go('topics')">
+          Details <span aria-hidden="true">→</span>
+        </button>
+      </header>
+
+      <div class="topic-list">
+        @for (tag of weakTags(); track tag.tag; let index = $index) {
+          <div class="topic-row">
+            <div class="topic-head">
+              <span class="topic-rank">{{ (index + 1).toString().padStart(2, '0') }}</span>
+              <span class="topic-name">{{ tag.tag }}</span>
+              <span class="topic-rate">{{ formatPercent(tag.failureRate) }}</span>
+            </div>
+            <div class="topic-bar">
+              <span [style.width.%]="tag.failureRate * 100"></span>
+            </div>
+            <p class="topic-meta">
+              {{ tag.problems }} problems · {{ tag.avgFailures.toFixed(1) }} avg failures
+              @if (tag.topVerdict) {
+                · mostly {{ tag.topVerdict.replaceAll('_', ' ').toLowerCase() }}
+              }
+            </p>
+          </div>
+        } @empty {
+          <div class="empty-state">
+            <strong>Not enough tag data.</strong>
+            <p>Solve or attempt a few problems to unlock topic analysis.</p>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="panel distribution">
+    <header class="panel-header">
+      <div>
+        <h2>How your problems break down</h2>
+        <p class="panel-sub">Every attempted problem, grouped by all-time failed submissions</p>
+      </div>
+      <button type="button" class="btn btn-sm" (click)="go('practice')">Find practice problems</button>
+    </header>
+    <div class="distribution-body">
+      <div class="stacked-bar" role="img" aria-label="Distribution of problems by struggle level">
+        @for (segment of segments(); track segment.tier) {
+          <span
+            [style.width.%]="segment.share"
+            [style.background]="tierMeta[segment.tier].color"
+            [title]="tierMeta[segment.tier].label + ': ' + segment.count"
+          ></span>
+        }
+      </div>
+      <div class="legend">
+        @for (segment of segments(); track segment.tier) {
+          <div class="legend-item">
+            <span class="legend-dot" [style.background]="tierMeta[segment.tier].color"></span>
+            <span class="legend-label">{{ tierMeta[segment.tier].label }}</span>
+            <strong>{{ segment.count }}</strong>
+            <span class="legend-share">{{ segment.share.toFixed(0) }}%</span>
+          </div>
+        }
+      </div>
+      <div class="split-strip">
+        <div class="split-copy">
+          <span>Contest submissions</span>
+          <strong>{{ formatNumber(a.contest.submissions) }}</strong>
+        </div>
+        <div class="split-bar">
+          <span class="split-contest" [style.width.%]="contestRatio().contest"></span>
+          <span class="split-practice" [style.width.%]="contestRatio().practice"></span>
+        </div>
+        <div class="split-copy split-right">
+          <span>Practice submissions</span>
+          <strong>{{ formatNumber(a.practice.submissions) }}</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="insights">
+    <div class="insights-head">
+      <p class="eyebrow">What the data says</p>
+      <h2>Patterns worth acting on.</h2>
+    </div>
+    <div class="insight-grid">
+      @for (insight of a.insights; track insight.title) {
+        <article
+          class="insight-card"
+          [class.insight-warn]="insight.level === 'warn'"
+          [class.insight-info]="insight.level === 'info'"
+          [class.insight-good]="insight.level === 'good'"
+        >
+          <span class="insight-dot"></span>
+          <h3>{{ insight.title }}</h3>
+          <p>{{ insight.text }}</p>
+        </article>
+      }
+    </div>
+  </section>
+</div>

@@ -1,0 +1,151 @@
+<div class="dashboard shell">
+  @if (status() === 'loading' && !analysis()) {
+    <section class="state-page fade-in">
+      <div class="loading-card panel">
+        <div class="loading-orbit">
+          <span class="spinner spinner-lg"></span>
+          <span class="orbit-ring"></span>
+        </div>
+        <p class="eyebrow">Analyzing</p>
+        <h1>Reading <span class="handle-accent">&#64;{{ handle() }}</span></h1>
+        <p class="loading-progress" role="status" aria-live="polite">{{ progress() }}</p>
+        <div class="loader-steps" aria-hidden="true">
+          <span class="done">Profile</span>
+          <span class="active">Submissions</span>
+          <span>Rating</span>
+        </div>
+        <p class="loading-hint">
+          Codeforces allows one request every two seconds. A first-time analysis usually takes a
+          few seconds; large histories can take longer.
+        </p>
+      </div>
+    </section>
+  } @else if (status() === 'error' && !analysis()) {
+    <section class="state-page fade-in">
+      <div class="error-card panel">
+        <span class="error-mark" aria-hidden="true">!</span>
+        <p class="eyebrow">Analysis failed</p>
+        <h1>We hit a snag.</h1>
+        <p class="error-text">{{ error() }}</p>
+        <div class="error-actions">
+          <button type="button" class="btn btn-primary" (click)="retry()">Try again</button>
+          <a class="btn" routerLink="/">Analyze another handle</a>
+        </div>
+      </div>
+    </section>
+  } @else if (analysis(); as a) {
+    @if (status() === 'refreshing') {
+      <div class="notice notice-info" role="status">
+        <span class="spinner"></span>
+        <span>
+          Showing the cached report from {{ updatedLabel() }}. Checking Codeforces for newer
+          submissions…
+        </span>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="notice notice-error" role="alert">
+        <span class="notice-icon" aria-hidden="true">!</span>
+        <span>{{ error() }}</span>
+        <button type="button" class="btn btn-sm" (click)="retry()">Retry</button>
+      </div>
+    }
+
+    <section class="user-hero fade-in">
+      <div class="identity">
+        @if (avatarUrl(); as avatar) {
+          <img
+            class="avatar"
+            [src]="avatar"
+            [alt]="a.handle"
+            (error)="avatarFailed.set(true)"
+            referrerpolicy="no-referrer"
+          />
+        } @else {
+          <span class="avatar avatar-fallback">{{ initials() }}</span>
+        }
+
+        <div class="identity-text">
+          <p class="eyebrow">Codeforces report</p>
+          <div class="handle-row">
+            <h1>{{ a.handle }}</h1>
+            <span class="rank-pill">{{ rank() }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="rating-value" [style.color]="ratingColor()">
+              {{ rating() ?? 'Unrated' }}
+              @if (maxRating()) {
+                <span class="max-rating">max {{ maxRating() }}</span>
+              }
+            </span>
+            <span class="meta-sep"></span>
+            <span>Member since {{ memberSince() }}</span>
+            <span class="meta-sep"></span>
+            <button type="button" class="inline-link" (click)="openProfile()">
+              View profile <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-side">
+        <div class="updated">
+          <span class="updated-label">Updated {{ updatedLabel() }}</span>
+          <span class="updated-sub">Public submissions · cached locally</span>
+        </div>
+        <button
+          type="button"
+          class="btn btn-sm refresh-btn"
+          (click)="refresh()"
+          [disabled]="busy()"
+        >
+          @if (busy()) {
+            <span class="spinner"></span>
+          } @else {
+            <span class="refresh-icon" aria-hidden="true">↻</span>
+          }
+          Refresh
+        </button>
+      </div>
+    </section>
+
+    <nav class="tabs" aria-label="Report sections">
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          class="tab"
+          [class.active]="activeTab() === tab.id"
+          [title]="tab.hint"
+          [attr.aria-current]="activeTab() === tab.id ? 'page' : null"
+          (click)="setTab(tab.id)"
+        >
+          {{ tab.label }}
+          @if (tab.id === 'struggles' && actionCount() > 0) {
+            <span class="tab-badge">{{ actionCount() }}</span>
+          }
+        </button>
+      }
+    </nav>
+
+    <div class="tab-panel fade-in">
+      @switch (activeTab()) {
+        @case ('overview') {
+          <app-overview [analysis]="a" (openTab)="setTab($event)" />
+        }
+        @case ('struggles') {
+          <app-struggles [analysis]="a" />
+        }
+        @case ('topics') {
+          <app-topics [analysis]="a" />
+        }
+        @case ('activity') {
+          <app-activity [analysis]="a" />
+        }
+        @case ('practice') {
+          <app-practice [analysis]="a" />
+        }
+      }
+    </div>
+  }
+</div>
