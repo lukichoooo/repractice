@@ -1,0 +1,93 @@
+<div class="progress">
+  @let a = analysis();
+
+  <section class="stat-strip">
+    <div class="mini-stat">
+      <span>Contests</span>
+      <strong>{{ formatNumber(a.contests) }}</strong>
+      <em>rated rounds in this window</em>
+    </div>
+    <div class="mini-stat">
+      <span>Rating at end</span>
+      <strong [style.color]="ratingColor(a.ratingAtEnd)">
+        {{ a.ratingAtEnd ?? '—' }}
+      </strong>
+      <em>{{ a.allTime ? 'current rating' : 'as of ' + endMonthLabel() }}</em>
+    </div>
+    <div class="mini-stat">
+      <span>Best in window</span>
+      <strong>{{ a.ratingBest ?? '—' }}</strong>
+      <em>highest rating in range</em>
+    </div>
+    <div class="mini-stat">
+      <span>Submissions</span>
+      <strong>{{ formatNumber(a.totals.submissions) }}</strong>
+      <em>{{ monthsLabel() }}</em>
+    </div>
+  </section>
+
+  <section class="panel">
+    <header class="panel-header">
+      <div>
+        <h2>Rating journey</h2>
+        <p class="panel-sub">Rated contests inside this window</p>
+      </div>
+      <div class="header-side">
+        @if (ratingChange() !== null) {
+          <span
+            class="rating-chip"
+            [class.up]="ratingChange()! > 0"
+            [class.down]="ratingChange()! < 0"
+          >
+            {{ ratingChange()! > 0 ? '+' : '' }}{{ ratingChange() }}
+            <small>in window</small>
+          </span>
+        }
+        @if (lastContest(); as contest) {
+          <div class="last-contest">
+            <span>Latest</span>
+            <strong>{{ contest.contestName }}</strong>
+            <em>
+              {{ contest.oldRating }} → {{ contest.newRating }} · rank #{{ contest.rank }} ·
+              {{ formatDate(contest.ratingUpdateTimeSeconds) }}
+            </em>
+          </div>
+        }
+      </div>
+    </header>
+    <div class="chart-body">
+      @if (a.ratingHistory.length) {
+        <app-chart [options]="chartRating()" height="300px" ariaLabel="Rating history" />
+      } @else {
+        <div class="empty-state">
+          <strong>No rated contests in this window.</strong>
+          <p>Widen the range to include a Codeforces round.</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="panel">
+    <header class="panel-header">
+      <div>
+        <h2>Submissions by month</h2>
+        <p class="panel-sub">{{ windowLabel() }} · bars are submissions, line is failed tries</p>
+      </div>
+    </header>
+    <div class="chart-body">
+      @if (a.totals.submissions) {
+        <app-chart
+          [options]="chartActivity()"
+          height="280px"
+          ariaLabel="Monthly submission activity"
+        />
+      } @else {
+        <div class="empty-state"><strong>No submissions in this window.</strong></div>
+      }
+    </div>
+  </section>
+
+  <p class="progress-note">
+    Everything on this tab uses only submissions from the selected window.
+  </p>
+</div>

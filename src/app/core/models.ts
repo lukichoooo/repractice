@@ -73,9 +73,7 @@ export interface CfProblemset {
   problemStatistics: CfProblemStatistics[];
 }
 
-export type CfResponse<T> =
-  | { status: 'OK'; result: T }
-  | { status: 'FAILED'; comment: string };
+export type CfResponse<T> = { status: 'OK'; result: T } | { status: 'FAILED'; comment: string };
 
 export interface Dataset {
   handle: string;
@@ -83,6 +81,18 @@ export interface Dataset {
   submissions: CfSubmission[];
   ratingHistory: CfRatingChange[];
   fetchedAt: number;
+}
+
+/** Inclusive calendar-month range, formatted as YYYY-MM (UTC). */
+export interface TimeWindow {
+  start: string;
+  end: string;
+}
+
+/** The earliest and latest month the account has data for. */
+export interface MonthBounds {
+  min: string;
+  max: string;
 }
 
 export type Tier = 'must' | 'should' | 'maybe' | 'unsolved' | 'tried-once' | 'solid';
@@ -115,7 +125,12 @@ export interface ProblemAnalysis {
   failures: number;
   submissions: number;
   acs: number;
-  failuresBeforeFirstAC: number;
+  /** A correct submission exists on or before the end of the selected window. */
+  solvedByEnd: boolean;
+  /** A correct submission exists anywhere in the downloaded history. */
+  everSolved: boolean;
+  /** Solved for the first time only after the selected window ended. */
+  solvedLater: boolean;
   firstAttempt: number;
   firstAC?: number;
   lastSubmission: number;
@@ -137,28 +152,8 @@ export interface TagStats {
   failureRate: number;
   solveRate: number;
   avgFailures: number;
-  avgFailuresToSolve: number;
   weakScore: number;
   topVerdict?: string;
-}
-
-export interface RatingBucket {
-  label: string;
-  min: number;
-  max: number;
-  problems: number;
-  solved: number;
-  failures: number;
-  submissions: number;
-  failureRate: number;
-  avgFailures: number;
-  solveRate: number;
-}
-
-export interface VerdictSummary {
-  verdict: string;
-  count: number;
-  share: number;
 }
 
 export interface MonthPoint {
@@ -169,71 +164,42 @@ export interface MonthPoint {
   failures: number;
 }
 
-export interface YearStat {
-  year: number;
+export interface AnalysisTotals {
   submissions: number;
-  acs: number;
+  attempts: number;
+  solved: number;
+  unsolved: number;
   failures: number;
-}
-
-export interface ContestSplit {
-  submissions: number;
-  acs: number;
-  failures: number;
-  failureRate: number;
-  solvedProblems: number;
-  onlyUpsolved: number;
-}
-
-export interface Insight {
-  level: 'warn' | 'info' | 'good';
-  title: string;
-  text: string;
+  mustRedo: number;
+  shouldRedo: number;
+  maybeRedo: number;
+  neverSolved: number;
+  solvedLater: number;
+  activeFrom: number;
+  activeTo: number;
+  currentRating?: number;
+  maxRating?: number;
+  windowMonths: number | null;
 }
 
 export interface Analysis {
   handle: string;
   now: number;
   user: CfUserInfo;
+  window: TimeWindow;
+  allTime: boolean;
   ratingHistory: CfRatingChange[];
+  ratingAtEnd?: number;
+  ratingBest?: number;
+  contests: number;
   problems: ProblemAnalysis[];
-  totals: {
-    submissions: number;
-    attempts: number;
-    solved: number;
-    unsolved: number;
-    failures: number;
-    firstTrySolves: number;
-    firstTryRate: number;
-    solveRate: number;
-    avgFailuresPerSolved: number;
-    mustRedo: number;
-    shouldRedo: number;
-    maybeRedo: number;
-    neverSolved: number;
-    staleStruggles: number;
-    activeFrom: number;
-    activeTo: number;
-    currentRating?: number;
-    maxRating?: number;
-  };
+  totals: AnalysisTotals;
   tierCounts: Record<Tier, number>;
   tags: TagStats[];
-  ratingBuckets: RatingBucket[];
-  verdicts: VerdictSummary[];
   activity: MonthPoint[];
-  years: YearStat[];
-  contest: ContestSplit;
-  practice: ContestSplit;
-  insights: Insight[];
-  hardestSolved?: ProblemAnalysis;
-  topStruggle?: ProblemAnalysis;
 }
 
-export interface Recommendation {
-  problem: CfProblem;
-  solvedCount: number;
-  url: string;
-  matchedTags: string[];
-  distance: number;
+export interface MashupPick {
+  slot: string;
+  problem: ProblemAnalysis;
 }

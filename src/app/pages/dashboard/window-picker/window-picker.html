@@ -1,0 +1,88 @@
+<section class="window-picker panel" aria-labelledby="window-title">
+  <div class="picker-head">
+    <div class="picker-copy">
+      <p class="eyebrow">Time window</p>
+      <h2 id="window-title">Which months should we judge?</h2>
+      <p class="picker-sub">
+        Only submissions inside this range are counted. Solved status is checked at the end month.
+      </p>
+    </div>
+    <div class="month-count" aria-live="polite">
+      <strong>{{ monthCount() }}</strong>
+      <span>{{ monthCount() === 1 ? 'month' : 'months' }} shown</span>
+    </div>
+  </div>
+
+  <div class="picker-body">
+    <div class="range-readout">
+      <div class="endpoint">
+        <span class="endpoint-label">From</span>
+        <strong>{{ startLabel() }}</strong>
+        <em>{{ startAge() }}</em>
+      </div>
+      <span class="range-arrow" aria-hidden="true">→</span>
+      <div class="endpoint endpoint-end">
+        <span class="endpoint-label">To</span>
+        <strong>{{ endLabel() }}</strong>
+        <em>{{ endAge() }}</em>
+      </div>
+    </div>
+
+    <div class="range-wrap">
+      <div class="range-track" aria-hidden="true">
+        <span
+          class="range-fill"
+          [style.left.%]="startPercent()"
+          [style.width.%]="endPercent() - startPercent()"
+        ></span>
+      </div>
+      <input
+        type="range"
+        class="range range-start"
+        min="0"
+        [max]="months().length - 1"
+        step="1"
+        [value]="startIndex()"
+        [attr.aria-valuetext]="startLabel() + ', ' + startAge()"
+        aria-label="Start month"
+        (input)="setStart(inputValue($event))"
+      />
+      <input
+        type="range"
+        class="range range-end"
+        min="0"
+        [max]="months().length - 1"
+        step="1"
+        [value]="endIndex()"
+        [attr.aria-valuetext]="endLabel() + ', ' + endAge()"
+        aria-label="End month"
+        (input)="setEnd(inputValue($event))"
+      />
+    </div>
+
+    <div class="range-ends" aria-hidden="true">
+      <span>{{ firstMonthLabel() }}</span>
+      <span>{{ lastMonthLabel() }}</span>
+    </div>
+  </div>
+
+  <div class="preset-row" role="group" aria-label="Quick time ranges">
+    <span class="preset-label">Quick pick</span>
+    @for (preset of presetState(); track preset.id) {
+      <button
+        type="button"
+        class="preset"
+        [class.active]="preset.active"
+        (click)="applyPreset(preset.months)"
+      >
+        {{ preset.label }}
+      </button>
+    }
+  </div>
+
+  @if (fallback()) {
+    <p class="fallback-note" role="status">
+      No activity in the default window (6 to 2 months ago), so we opened all time instead.
+    </p>
+  }
+</section>

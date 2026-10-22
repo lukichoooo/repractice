@@ -1,25 +1,26 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CfApiError, CfApiService } from '../../core/cf-api.service';
 import { CacheService, DATASET_TTL_MS } from '../../core/cache.service';
 import { ACTION_TIERS, analyze, tierCount } from '../../core/analysis';
-import type { Analysis, Dataset } from '../../core/models';
+import type { Analysis, Dataset, MonthBounds, TimeWindow } from '../../core/models';
 import { addRecentHandle } from '../../core/recent';
 import { formatDate, rankLabel, ratingColor, timeAgo } from '../../core/format';
-import { OverviewComponent } from './overview/overview';
+import {
+  clampWindow,
+  defaultWindow,
+  formatWindowLabel,
+  hasSubmissionsInWindow,
+  monthBounds,
+} from '../../core/time-window';
+import { WindowPickerComponent } from './window-picker/window-picker';
+import { SummaryComponent } from './summary/summary';
 import { StrugglesComponent } from './struggles/struggles';
-import { TopicsComponent } from './topics/topics';
-import { ActivityComponent } from './activity/activity';
-import { PracticeComponent } from './practice/practice';
+import { MashupComponent } from './mashup/mashup';
+import { ProgressComponent } from './progress/progress';
 
-export type TabId = 'overview' | 'struggles' | 'topics' | 'activity' | 'practice';
+export type TabId = 'summary' | 'struggles' | 'mashup' | 'progress';
 
 interface TabDef {
   id: TabId;
@@ -28,11 +29,10 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: 'overview', label: 'Overview', hint: 'Summary and insights' },
+  { id: 'summary', label: 'Summary', hint: 'The short version' },
   { id: 'struggles', label: 'Struggles', hint: 'Problems that took too many tries' },
-  { id: 'topics', label: 'Topics', hint: 'Tags, verdicts and difficulty' },
-  { id: 'activity', label: 'Activity', hint: 'Rating and submission history' },
-  { id: 'practice', label: 'Practice', hint: 'Fresh problems matched to you' },
+  { id: 'mashup', label: 'Mashup', hint: 'A timed set from your worst problems' },
+  { id: 'progress', label: 'Progress', hint: 'Rating and submissions in this window' },
 ];
 
 type Status = 'idle' | 'loading' | 'refreshing' | 'ready' | 'error';
@@ -40,12 +40,12 @@ type Status = 'idle' | 'loading' | 'refreshing' | 'ready' | 'error';
 @Component({
   selector: 'app-dashboard',
   imports: [
-    OverviewComponent,
-    StrugglesComponent,
-    TopicsComponent,
-    ActivityComponent,
-    PracticeComponent,
     RouterLink,
+    WindowPickerComponent,
+    SummaryComponent,
+    StrugglesComponent,
+    MashupComponent,
+    ProgressComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
@@ -63,19 +63,37 @@ export class DashboardPage {
   readonly status = signal<Status>('idle');
   readonly error = signal<string | null>(null);
   readonly progress = signal('');
-  readonly activeTab = signal<TabId>('overview');
+  readonly activeTab = signal<TabId>('summary');
   readonly avatarFailed = signal(false);
+  readonly now = signal(Date.now());
+  readonly timeWindow = signal<TimeWindow | null>(null);
+  readonly fallbackNotice = signal(false);
 
   private loadSequence = 0;
 
-  readonly analysis = computed<Analysis | null>(() => {
+  readonly bounds = computed<MonthBounds | null>(() => {
     const dataset = this.dataset();
-    return dataset ? analyze(dataset, Date.now()) : null;
+    return dataset ? monthBounds(dataset.submissions, this.now()) : null;
   });
 
-  readonly busy = computed(
-    () => this.status() === 'loading' || this.status() === 'refreshing',
-  );
+  readonly analysis = computed<Analysis | null>(() => {
+    const dataset = this.dataset();
+    if (!dataset) return null;
+    return analyze(dataset, this.now(), this.timeWindow());
+  });
+
+  readonly windowLabel = computed(() => {
+    const analysis = this.analysis();
+    if (!analysis) return '';
+    return analysis.allTime ? 'All time' : formatWindowLabel(analysis.window);
+  });
+
+  readonly windowEmpty = computed(() => {
+    const analysis = this.analysis();
+    return !!analysis && analysis.totals.submissions === 0;
+  });
+
+  readonly busy = computed(() => this.status() === 'loading' || this.status() === 'refreshing');
 
   readonly actionCount = computed(() => {
     const analysis = this.analysis();
@@ -117,13 +135,27 @@ export class DashboardPage {
         return;
       }
       this.handle.set(handle);
-      this.activeTab.set('overview');
+      this.activeTab.set('summary');
+      this.timeWindow.set(null);
+      this.fallbackNotice.set(false);
       void this.load(handle);
     });
   }
 
   setTab(tab: TabId): void {
     this.activeTab.set(tab);
+  }
+
+  setWindow(window: TimeWindow): void {
+    this.timeWindow.set(window);
+    this.fallbackNotice.set(false);
+  }
+
+  showAllTime(): void {
+    const bounds = this.bounds();
+    if (!bounds) return;
+    this.timeWindow.set({ start: bounds.min, end: bounds.max });
+    this.fallbackNotice.set(false);
   }
 
   refresh(): void {
@@ -142,6 +174,28 @@ export class DashboardPage {
     );
   }
 
+  private initializeWindow(dataset: Dataset): void {
+    const now = Date.now();
+    this.now.set(now);
+    const bounds = monthBounds(dataset.submissions, now);
+    const existing = this.timeWindow();
+    if (existing) {
+      this.timeWindow.set(clampWindow(existing, bounds));
+      this.fallbackNotice.set(false);
+      return;
+    }
+    const defaultRange = defaultWindow(bounds, bounds.max);
+    const allTime = { start: bounds.min, end: bounds.max };
+    const hasDefaultData = hasSubmissionsInWindow(dataset.submissions, defaultRange);
+    const usedFallback =
+      !hasDefaultData &&
+      dataset.submissions.length > 0 &&
+      !(defaultRange.start === allTime.start && defaultRange.end === allTime.end);
+
+    this.timeWindow.set(usedFallback ? allTime : defaultRange);
+    this.fallbackNotice.set(usedFallback);
+  }
+
   private async load(rawHandle: string, force = false): Promise<void> {
     const handle = rawHandle.trim();
     if (!handle) return;
@@ -154,6 +208,7 @@ export class DashboardPage {
     if (sequence !== this.loadSequence) return;
 
     if (cached) {
+      this.initializeWindow(cached);
       this.dataset.set(cached);
       document.title = `${cached.handle} — Codeforces Repractice`;
       const age = Date.now() - cached.fetchedAt;
@@ -198,6 +253,7 @@ export class DashboardPage {
       await this.cache.putDataset(dataset);
       if (sequence !== this.loadSequence) return;
 
+      this.initializeWindow(dataset);
       this.dataset.set(dataset);
       this.status.set('ready');
       this.progress.set('');

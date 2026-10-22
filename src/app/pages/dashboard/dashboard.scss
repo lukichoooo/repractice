@@ -2,6 +2,15 @@
   padding: 30px 0 10px;
 }
 
+app-window-picker {
+  display: block;
+  margin-top: 16px;
+}
+
+.window-empty {
+  margin-top: 22px;
+}
+
 .state-page {
   display: grid;
   place-items: center;
@@ -169,8 +178,7 @@
   border-radius: var(--radius);
   background:
     radial-gradient(600px 160px at 100% 0%, rgba(255, 122, 69, 0.09), transparent 70%),
-    radial-gradient(500px 200px at 0% 100%, rgba(91, 141, 239, 0.08), transparent 70%),
-    var(--panel);
+    radial-gradient(500px 200px at 0% 100%, rgba(91, 141, 239, 0.08), transparent 70%), var(--panel);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
 }
 

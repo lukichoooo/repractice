@@ -1,45 +1,46 @@
 # Codeforces Repractice
 
-Find the Codeforces problems that beat you, see how long ago it was, and get a practice plan built from your own submission history.
+Find the Codeforces problems that beat you, judge them inside a time window you choose, and turn them into a timed mashup.
 
 Enter a public Codeforces handle — no login, no backend, no API key.
 
 ![Angular](https://img.shields.io/badge/Angular-22-dd0031)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6)
-![Deploy](https://img.shields.io/badge/deploy-Cloudflare%20Pages-f38020)
+![Deploy](https://img.shields.io/badge/deploy-Cloudflare%20Workers-f38020)
 
 ## What it does
 
-- **Struggle radar** — groups every submission by problem and counts all failed submissions, including failures after an AC.
-- **Severity buckets** — `10+` must redo, `5–9` should redo, `2–4` maybe redo, `0–1` solid. Problems that were never solved get their own bucket.
-- **Recency** — every row shows the last attempt and first accepted submission, with a default sort that pushes old struggles to the top.
-- **Attempt timeline** — expand a problem to see every submission, verdict, date, language, runtime and memory.
-- **In-depth analysis** — weakest tags, failure verdicts, difficulty vs. failures, rating buckets, contest vs. practice, yearly activity, rating history and rule-based insights.
-- **Practice builder** — recommends unattempted problems around your rating that match your weakest tags, using the public Codeforces problemset.
+- **Time window** — pick an inclusive month range. Only submissions inside it are counted. The default is six months back to two months back, with quick presets for the last 3 months, 6 months, year, 2 years, and all time.
+- **Struggle radar** — groups submissions by problem and counts failed tries in the window. `10+` must redo, `5–9` should redo, `2–4` maybe redo. Problems with no accepted solution by the end of the window get their own **Never solved** bucket.
+- **Solved status as of the window end** — an accepted submission before the window still counts as solved. A solve after the window does not; the row is labelled “solved later” so the history stays honest.
+- **Attempt timeline** — expand a problem to see every submission in the window, verdict, date, language, runtime and memory.
+- **Weak topics** — the three tags where failed tries cluster most in the selected window.
+- **Timed mashup** — choose 30 minutes to 3 hours, get 2–7 problems from your struggles, and copy lines in Codeforces format:
+  ```
+  A - 2237/B
+  B - 2314/C
+  ```
+- **Progress** — contests, rating at the end of the window, best rating in range, and monthly submissions. Rating and activity charts use the same window.
 
 ## Attempt counting
 
-For each problem:
+For each problem with at least one submission inside the selected window:
 
-- `failures` = every non-`OK` submission, across all time, **including submissions after an accepted one**
-- `failuresBeforeFirstAC` = failures before the first `OK`
-- `submissions` = all attempts
-- `acs` = accepted submissions
-- `tier` = based on `failures` (the **All failures** mode)
+- `failures` = every non-`OK` submission inside the window, including submissions after an accepted one
+- `submissions` = attempts inside the window
+- `solvedByEnd` = an `OK` exists on or before the end of the window
+- `everSolved` = an `OK` exists anywhere in the downloaded history
+- `solvedLater` = `everSolved` but not `solvedByEnd`
+- `tier` = based on `failures` and `solvedByEnd`
 
-The Struggles tab has a **Counting** toggle:
-
-- **All failures** (default) — buckets and the ranked count use every failure ever, including after an AC.
-- **Pre-AC only** — re-buckets each problem using only `failuresBeforeFirstAC`, so post-AC resubmissions no longer inflate it.
-
-Each row shows the failure count, how many of those were pre-AC, the AC count and total submissions, so the number driving the bucket is always explicit.
+If the default window contains no submissions (for example, an inactive account), the app opens **all time** and shows a short note instead of an empty report.
 
 ## Data and rate limits
 
 - Data comes from the public [Codeforces API](https://codeforces.com/apiHelp).
 - The API allows **1 request per 2 seconds**. Every call goes through a shared queue with a 2.1 second gap.
 - `user.status` is paginated in 10,000-submission pages, so histories of any size are supported.
-- Responses are cached in **IndexedDB for one hour** per handle. The problemset is cached for 24 hours.
+- Responses are cached in **IndexedDB for one hour** per handle.
 - No data leaves your browser aside from requests to Codeforces. There is no server, account or API key.
 
 ## Development
@@ -53,10 +54,15 @@ Open `http://localhost:4200`.
 
 ```bash
 npm run build     # production build -> dist/cf-repractice/browser
-npm test          # unit tests (analysis engine + app shell)
+npm run test:ci   # unit tests (window logic, analysis engine, mashup generator, app shell)
 ```
 
-The analysis engine lives in `src/app/core/analysis.ts` and is covered by fixtures in `analysis.spec.ts`.
+Core logic lives in `src/app/core/`:
+
+- `time-window.ts` — month math, default window, presets, clamping
+- `analysis.ts` — window-aware grouping and tiers
+- `mashup.ts` — duration mapping and copy-ready selection
+- `chart-options.ts` — the two charts used by Progress
 
 ## Deploy to Cloudflare
 
@@ -88,4 +94,3 @@ The SPA fallback comes from `wrangler.jsonc` (`assets.not_found_handling: "singl
 - Not affiliated with Codeforces.
 - Only public data is used; private submissions, hacks and source code are not requested.
 - If Codeforces changes its API or rate limits, add a small proxy function in a future version. The current API sends `Access-Control-Allow-Origin: *`, so no proxy is required today.
-# repractice

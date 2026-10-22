@@ -12,6 +12,10 @@ const USER = {
 
 let nextId = 1;
 
+function ts(year: number, month: number, day = 15): number {
+  return Date.UTC(year, month - 1, day) / 1000;
+}
+
 function submission(
   contestId: number,
   index: string,
@@ -70,7 +74,6 @@ describe('analyze', () => {
     expect(problem.failures).toBe(3);
     expect(problem.acs).toBe(1);
     expect(problem.submissions).toBe(4);
-    expect(problem.failuresBeforeFirstAC).toBe(2);
     expect(problem.tier).toBe('maybe');
   });
 
@@ -85,10 +88,11 @@ describe('analyze', () => {
     expect(problem.tier).toBe('must');
   });
 
-  it('re-buckets a solved problem when counting only pre-AC failures', () => {
-    expect(tierFor(3, 1)).toBe('maybe');
-    expect(tierFor(3, 0)).toBe('unsolved');
-    expect(tierFor(10, 1)).toBe('must');
+  it('assigns tiers from failures and solved status', () => {
+    expect(tierFor(3, true)).toBe('maybe');
+    expect(tierFor(3, false)).toBe('unsolved');
+    expect(tierFor(10, true)).toBe('must');
+    expect(tierFor(1, false)).toBe('tried-once');
   });
 
   it('puts attempted but unsolved problems in their own tier', () => {
@@ -103,33 +107,93 @@ describe('analyze', () => {
 
     expect(result.problems.find((p) => p.index === 'C')?.tier).toBe('unsolved');
     expect(result.problems.find((p) => p.index === 'D')?.tier).toBe('tried-once');
-    expect(result.totals.neverSolved).toBe(1);
+    // Never solved includes both the 2+ failure bucket and one-try problems.
+    expect(result.totals.neverSolved).toBe(2);
   });
 
-  it('computes first-try rate without counting later practice failures', () => {
+  it('counts only submissions inside the selected window', () => {
     const result = analyze(
       dataset([
-        submission(5, 'E', 'OK', 100),
-        submission(5, 'E', 'WRONG_ANSWER', 200),
-        submission(6, 'F', 'WRONG_ANSWER', 300),
-        submission(6, 'F', 'OK', 400),
+        submission(5, 'A', 'WRONG_ANSWER', ts(2026, 1)),
+        submission(5, 'A', 'WRONG_ANSWER', ts(2026, 2)),
+        submission(5, 'A', 'OK', ts(2026, 3)),
+        submission(6, 'B', 'WRONG_ANSWER', ts(2026, 1)),
+        submission(6, 'B', 'OK', ts(2026, 2)),
       ]),
-      10_000_000,
+      Date.UTC(2026, 3, 15),
+      { start: '2026-03', end: '2026-03' },
     );
 
-    expect(result.totals.solved).toBe(2);
-    expect(result.totals.firstTrySolves).toBe(1);
-    expect(result.totals.firstTryRate).toBe(0.5);
+    expect(result.totals.submissions).toBe(1);
+    expect(result.totals.attempts).toBe(1);
+    expect(result.totals.failures).toBe(0);
+    expect(result.problems[0].index).toBe('A');
+    expect(result.problems[0].submissions).toBe(1);
+    expect(result.problems[0].tier).toBe('solid');
+  });
+
+  it('treats a problem as solved if it was accepted before the window', () => {
+    const result = analyze(
+      dataset([
+        submission(7, 'C', 'OK', ts(2026, 1)),
+        submission(7, 'C', 'WRONG_ANSWER', ts(2026, 2)),
+      ]),
+      Date.UTC(2026, 3, 15),
+      { start: '2026-02', end: '2026-02' },
+    );
+
+    const problem = result.problems[0];
+    expect(problem.failures).toBe(1);
+    expect(problem.solvedByEnd).toBe(true);
+    expect(problem.everSolved).toBe(true);
+    expect(problem.solvedLater).toBe(false);
+    expect(problem.tier).toBe('solid');
+    expect(result.totals.neverSolved).toBe(0);
+  });
+
+  it('marks a problem solved after the window as never solved for that window', () => {
+    const result = analyze(
+      dataset([
+        submission(8, 'D', 'WRONG_ANSWER', ts(2026, 1)),
+        submission(8, 'D', 'WRONG_ANSWER', ts(2026, 1, 20)),
+        submission(8, 'D', 'OK', ts(2026, 3)),
+      ]),
+      Date.UTC(2026, 3, 15),
+      { start: '2026-01', end: '2026-01' },
+    );
+
+    const problem = result.problems[0];
+    expect(problem.failures).toBe(2);
+    expect(problem.solvedByEnd).toBe(false);
+    expect(problem.everSolved).toBe(true);
+    expect(problem.solvedLater).toBe(true);
+    expect(problem.tier).toBe('unsolved');
+    expect(result.totals.neverSolved).toBe(1);
+    expect(result.totals.solvedLater).toBe(1);
+  });
+
+  it('uses all time when no window is supplied', () => {
+    const result = analyze(
+      dataset([
+        submission(9, 'A', 'WRONG_ANSWER', ts(2025, 1)),
+        submission(9, 'A', 'OK', ts(2026, 1)),
+      ]),
+      Date.UTC(2026, 3, 15),
+    );
+
+    expect(result.allTime).toBe(true);
+    expect(result.totals.submissions).toBe(2);
+    expect(result.problems[0].failures).toBe(1);
   });
 
   it('sorts by tier priority by default and by failures on request', () => {
     const result = analyze(
       dataset([
-        submission(7, 'A', 'WRONG_ANSWER', 100),
-        submission(7, 'A', 'OK', 200),
-        submission(8, 'B', 'WRONG_ANSWER', 300),
-        submission(8, 'B', 'WRONG_ANSWER', 400),
-        submission(8, 'B', 'OK', 500),
+        submission(10, 'A', 'WRONG_ANSWER', 100),
+        submission(10, 'A', 'OK', 200),
+        submission(11, 'B', 'WRONG_ANSWER', 300),
+        submission(11, 'B', 'WRONG_ANSWER', 400),
+        submission(11, 'B', 'OK', 500),
       ]),
       10_000_000,
     );
@@ -141,10 +205,10 @@ describe('analyze', () => {
   it('aggregates tag statistics across problems', () => {
     const result = analyze(
       dataset([
-        submission(9, 'A', 'WRONG_ANSWER', 100),
-        submission(9, 'A', 'WRONG_ANSWER', 200),
-        submission(9, 'A', 'OK', 300),
-        submission(10, 'B', 'OK', 400),
+        submission(12, 'A', 'WRONG_ANSWER', 100),
+        submission(12, 'A', 'WRONG_ANSWER', 200),
+        submission(12, 'A', 'OK', 300),
+        submission(13, 'B', 'OK', 400),
       ]),
       10_000_000,
     );
@@ -156,22 +220,21 @@ describe('analyze', () => {
     expect(dp?.topVerdict).toBe('WRONG_ANSWER');
   });
 
-  it('records pre-AC failures and contest participation', () => {
+  it('records contest participation and solved-by-window status', () => {
     const result = analyze(
       dataset([
-        submission(11, 'A', 'WRONG_ANSWER', 100),
-        submission(11, 'A', 'WRONG_ANSWER', 200, 'CONTESTANT'),
-        submission(11, 'A', 'OK', 300, 'CONTESTANT'),
-        submission(11, 'A', 'OK', 400),
+        submission(14, 'A', 'WRONG_ANSWER', 100),
+        submission(14, 'A', 'WRONG_ANSWER', 200, 'CONTESTANT'),
+        submission(14, 'A', 'OK', 300, 'CONTESTANT'),
+        submission(14, 'A', 'OK', 400),
       ]),
       10_000_000,
     );
 
     const problem = result.problems[0];
-    expect(problem.failuresBeforeFirstAC).toBe(2);
+    expect(problem.solvedByEnd).toBe(true);
     expect(problem.solvedInContest).toBe(true);
     expect(problem.contestSubmissions).toBe(2);
     expect(problem.practiceSubmissions).toBe(2);
-    expect(result.contest.solvedProblems).toBe(1);
   });
 });

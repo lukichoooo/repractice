@@ -4,9 +4,8 @@
       <p class="eyebrow">Codeforces · deliberate practice</p>
       <h1>Find the problems<br />that <span class="accent">beat you.</span></h1>
       <p class="hero-lede">
-        Enter your Codeforces handle. We read your public submission history, surface every problem
-        that took too many tries, and show you exactly how long ago it was — so you know what to
-        solve again.
+        Enter your Codeforces handle. Pick the months you actually want to judge, see every problem
+        that fought back, and turn the worst ones into a timed mashup.
       </p>
 
       <form class="search-box" (ngSubmit)="submit()">
@@ -79,12 +78,12 @@
             <span>must redo</span>
           </div>
           <div>
-            <strong>28</strong>
-            <span>should redo</span>
+            <strong>14</strong>
+            <span>never solved</span>
           </div>
           <div>
-            <strong>61%</strong>
-            <span>first-try rate</span>
+            <strong>5</strong>
+            <span>mashup problems</span>
           </div>
         </div>
 
@@ -150,16 +149,18 @@
   <div class="section-head">
     <p class="eyebrow">What you get</p>
     <h2>An honest mirror for your practice.</h2>
-    <p>Most submission stats count solved problems. This one counts the pain it took to get there.</p>
+    <p>
+      Most submission stats count solved problems. This one counts the pain it took to get there.
+    </p>
   </div>
 
   <div class="feature-grid">
     <article class="feature-card">
       <span class="feature-index">01</span>
-      <h3>Struggle radar</h3>
+      <h3>Pick the months</h3>
       <p>
-        Every problem grouped by its failed submissions, with your exact thresholds:
-        10+ must redo, 5+ should redo, 2+ might need another look.
+        Start six months back and end two months back, or drag any range. Only submissions inside
+        that window are judged, so old attempts do not distort the picture.
       </p>
       <div class="mini-tiers">
         <span class="tier tier-must">10+</span>
@@ -170,39 +171,39 @@
 
     <article class="feature-card">
       <span class="feature-index">02</span>
-      <h3>Time since you tried</h3>
+      <h3>Struggle radar</h3>
       <p>
-        A hard problem from three years ago is a different problem today. See the last attempt and
-        the first solve for every struggle, sorted by what is going stale.
+        Every failed try counts, including ones after a solve. 10 or more means must redo, 5–9 means
+        should redo, 2–4 means maybe. Problems you never solved get their own bucket.
       </p>
       <div class="mini-age"><span>2y 4m ago</span><i></i><span>1y 1m ago</span></div>
     </article>
 
     <article class="feature-card">
       <span class="feature-index">03</span>
-      <h3>Weakness, not vibes</h3>
+      <h3>Timed mashup</h3>
       <p>
-        Failure rates by tag, attempts by difficulty, verdict breakdowns, contest vs practice —
-        the patterns behind the failed submissions.
+        Tell us whether you have 30 minutes or 3 hours. We pick from your worst problems and give
+        you copy-paste Codeforces lines like <span class="mono">A - 2237/B</span>.
       </p>
-      <div class="mini-bars">
-        <span style="--w: 82%"></span>
-        <span style="--w: 61%"></span>
-        <span style="--w: 44%"></span>
+      <div class="mini-pick">
+        <span class="mono">A - 2237/B</span>
+        <span>2h · 5 problems</span>
+        <span class="pick-arrow">→</span>
       </div>
     </article>
 
     <article class="feature-card">
       <span class="feature-index">04</span>
-      <h3>What to solve next</h3>
+      <h3>Weak topics + progress</h3>
       <p>
-        Unsolved problems from your weakest topics, around your rating. Fresh practice instead of
-        scrolling the problemset aimlessly.
+        See the three topics where failed tries cluster, plus your rating and monthly submissions
+        inside the same window. No charts for the sake of charts.
       </p>
-      <div class="mini-pick">
-        <span class="mono">1920E</span>
-        <span>dp · constructive</span>
-        <span class="pick-arrow">→</span>
+      <div class="mini-bars">
+        <span style="--w: 82%"></span>
+        <span style="--w: 61%"></span>
+        <span style="--w: 44%"></span>
       </div>
     </article>
   </div>
@@ -224,17 +225,21 @@
     <div class="how-step">
       <span class="step-number">02</span>
       <div>
-        <h3>We read every submission</h3>
+        <h3>Pick your months</h3>
         <p>
-          The app groups attempts by problem, counts failures, and respects Codeforces' rate limit.
+          We read every public submission, then judge only the window you choose. Solved status is
+          checked at the end of that window.
         </p>
       </div>
     </div>
     <div class="how-step">
       <span class="step-number">03</span>
       <div>
-        <h3>You get a repractice plan</h3>
-        <p>Old struggles first, weak topics ranked, and fresh problems matched to your level.</p>
+        <h3>Practice with a plan</h3>
+        <p>
+          Get the struggles list, the three weakest topics, and a timed mashup with copy-paste lines
+          for Codeforces.
+        </p>
       </div>
     </div>
   </div>

@@ -1,0 +1,152 @@
+<div class="summary">
+  @let a = analysis();
+
+  <section class="stat-grid" aria-label="Key numbers">
+    <article class="stat-card">
+      <p class="stat-label">Problems tried</p>
+      <p class="stat-value">{{ formatNumber(a.totals.attempts) }}</p>
+      <p class="stat-sub">
+        {{ formatNumber(a.totals.solved) }} solved · {{ formatNumber(a.totals.unsolved) }} not
+        solved by {{ endMonth() }}
+      </p>
+    </article>
+
+    <article class="stat-card stat-card-red">
+      <p class="stat-label">Failed tries</p>
+      <p class="stat-value">{{ formatNumber(a.totals.failures) }}</p>
+      <p class="stat-sub">
+        out of {{ formatNumber(a.totals.submissions) }} submissions in this window
+      </p>
+    </article>
+
+    <article class="stat-card stat-card-orange">
+      <p class="stat-label">Must redo</p>
+      <p class="stat-value">{{ formatNumber(a.totals.mustRedo) }}</p>
+      <p class="stat-sub">problems with 10 or more failed tries</p>
+    </article>
+
+    <article class="stat-card stat-card-purple">
+      <p class="stat-label">Never solved</p>
+      <p class="stat-value">{{ formatNumber(a.totals.neverSolved) }}</p>
+      <p class="stat-sub">
+        no accepted solution by {{ endMonth() }}
+        @if (a.totals.solvedLater > 0) {
+          · {{ formatNumber(a.totals.solvedLater) }} solved later
+        }
+      </p>
+    </article>
+  </section>
+
+  <div class="two-col">
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <h2>Biggest struggles</h2>
+          <p class="panel-sub">The problems that fought back the most</p>
+        </div>
+        @if (topStruggles().length) {
+          <button type="button" class="link-button" (click)="openTab.emit('struggles')">
+            See all <span aria-hidden="true">→</span>
+          </button>
+        }
+      </header>
+
+      @if (topStruggles().length) {
+        <div class="mini-list">
+          @for (problem of topStruggles(); track problem.key) {
+            <a class="mini-row" [href]="problem.url" target="_blank" rel="noreferrer">
+              <span class="mini-problem">
+                <span class="mini-name">{{ problem.name }}</span>
+                <span class="mini-code">
+                  {{ problem.contestId }}{{ problem.index }}
+                  @if (problem.rating) {
+                    <span class="rating-dot" [style.color]="ratingColor(problem.rating)">
+                      · {{ problem.rating }}
+                    </span>
+                  }
+                  @if (problem.solvedLater) {
+                    <span class="solved-later">solved later</span>
+                  }
+                </span>
+              </span>
+              <span
+                class="tier-tag"
+                [style.color]="tierMeta[problem.tier].color"
+                [style.border-color]="tierMeta[problem.tier].color + '4d'"
+                [style.background]="tierMeta[problem.tier].color + '17'"
+              >
+                {{ tierMeta[problem.tier].label }}
+              </span>
+              <span class="mini-fails">{{ problem.failures }}<small>fails</small></span>
+              <span class="mini-age">{{ timeAgo(problem.lastFailure, a.now) }}</span>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          @if (a.allTime) {
+            <strong>No struggles here.</strong>
+            <p>Nothing crossed the 2-failure mark in this range.</p>
+          } @else {
+            <strong>No struggles in this window.</strong>
+            <p>Nothing crossed the 2-failure mark. Try a longer range to look further back.</p>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <h2>Weakest topics</h2>
+          <p class="panel-sub">Where your failed tries cluster</p>
+        </div>
+      </header>
+
+      @if (weakTags().length) {
+        <div class="topic-list">
+          @for (tag of weakTags(); track tag.tag; let index = $index) {
+            <div class="topic-row">
+              <div class="topic-head">
+                <span class="topic-rank">{{ (index + 1).toString().padStart(2, '0') }}</span>
+                <span class="topic-name">{{ tag.tag }}</span>
+                <span class="topic-rate">{{ formatPercent(tag.failureRate) }}</span>
+              </div>
+              <div class="topic-bar">
+                <span [style.width.%]="tag.failureRate * 100"></span>
+              </div>
+              <p class="topic-meta">
+                {{ tag.problems }} problems · {{ tag.avgFailures.toFixed(1) }} failed tries each
+                @if (tag.topVerdict) {
+                  · mostly {{ tag.topVerdict.replaceAll('_', ' ').toLowerCase() }}
+                }
+              </p>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <strong>Not enough topic data.</strong>
+          <p>Attempt a few more problems in this window to unlock this list.</p>
+        </div>
+      }
+    </section>
+  </div>
+
+  @if (topStruggles().length) {
+    <section class="mashup-cta panel">
+      <div class="cta-copy">
+        <p class="eyebrow">Ready to practice?</p>
+        <h2>Turn these struggles into a timed mashup.</h2>
+        <p>
+          Tell us how long you have. We will pick a set from your worst problems in this window and
+          give you copy-paste Codeforces lines.
+        </p>
+      </div>
+      <button type="button" class="btn btn-primary" (click)="openTab.emit('mashup')">
+        Build a mashup
+        <span aria-hidden="true">→</span>
+      </button>
+    </section>
+  }
+</div>

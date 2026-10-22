@@ -15,35 +15,16 @@
         />
       </div>
 
-      <div class="selects">
-        <label class="select-label">
-          <span>Sort</span>
-          <select class="field" [value]="sort()" (change)="setSort(selectValue($event))">
-            <option value="priority">Priority</option>
-            <option value="failures">Most failures</option>
-            <option value="oldest">Oldest attempt</option>
-            <option value="newest">Newest attempt</option>
-            <option value="rating">Highest rating</option>
-          </select>
-        </label>
-
-        <label class="select-label">
-          <span>Rating</span>
-          <select
-            class="field"
-            [value]="ratingFilter()"
-            (change)="setRating(selectValue($event))"
-          >
-            <option value="all">Any rating</option>
-            <option value="lt1200">&lt; 1200</option>
-            <option value="1200-1599">1200–1599</option>
-            <option value="1600-1999">1600–1999</option>
-            <option value="2000-2399">2000–2399</option>
-            <option value="2400plus">2400+</option>
-            <option value="unrated">Unrated</option>
-          </select>
-        </label>
-      </div>
+      <label class="select-label">
+        <span>Sort by</span>
+        <select class="field" [value]="sort()" (change)="setSort(selectValue($event))">
+          <option value="priority">Most urgent</option>
+          <option value="failures">Most failed tries</option>
+          <option value="oldest">Oldest failed try</option>
+          <option value="newest">Newest failed try</option>
+          <option value="rating">Highest rating</option>
+        </select>
+      </label>
     </div>
 
     <div class="filter-chips" role="group" aria-label="Filter by struggle level">
@@ -67,31 +48,12 @@
       <p>
         <strong>{{ filtered().length }}</strong>
         {{ filtered().length === 1 ? 'problem' : 'problems' }}
-        @if (tierFilter() === 'action') {
-          in your needs-work list
-        } @else if (tierFilter() !== 'all') {
-          in this bucket
+        @if (sort() === 'priority') {
+          · most urgent first
         }
       </p>
       <div class="result-actions">
-        <span class="mode-label">Counting</span>
-        <div class="mode-toggle" role="group" aria-label="Failure counting mode">
-          <button
-            type="button"
-            [class.active]="countMode() === 'all'"
-            (click)="setCountMode('all')"
-          >
-            All failures
-          </button>
-          <button
-            type="button"
-            [class.active]="countMode() === 'pre'"
-            (click)="setCountMode('pre')"
-            title="Ignore failures submitted after the problem was first accepted"
-          >
-            Pre-AC only
-          </button>
-        </div>
+        <span class="window-note">Only submissions in the selected months are counted.</span>
         <button type="button" class="reset-btn" (click)="reset()">Reset filters</button>
       </div>
     </div>
@@ -104,13 +66,8 @@
           <tr>
             <th class="col-problem">Problem</th>
             <th class="col-rating">Rating</th>
-            <th class="col-fails">
-              Failed
-              <span class="th-sub">{{ countMode() === 'pre' ? 'pre-AC' : 'all-time' }}</span>
-            </th>
-            <th class="col-acs">ACs</th>
-            <th class="col-last">Last attempt</th>
-            <th class="col-first">First solved</th>
+            <th class="col-fails">Failed</th>
+            <th class="col-last">Last failed try</th>
             <th class="col-tier">Status</th>
             <th class="col-expand"><span class="sr-only">Details</span></th>
           </tr>
@@ -135,6 +92,7 @@
                     target="_blank"
                     rel="noreferrer"
                     (click)="$event.stopPropagation()"
+                    (keydown.enter)="$event.stopPropagation()"
                   >
                     {{ problem.name }}
                   </a>
@@ -146,6 +104,9 @@
                     }
                     @if (problem.solvedInContest) {
                       <span class="contest-flag">solved in contest</span>
+                    }
+                    @if (problem.solvedLater) {
+                      <span class="later-flag">solved later</span>
                     }
                   </div>
                 </div>
@@ -162,43 +123,23 @@
               </td>
 
               <td class="col-fails">
-                <span class="fail-count">{{ problem.viewFailures }}</span>
-                @if (countMode() === 'pre') {
-                  <span class="fail-detail">{{ problem.failures }} all-time</span>
-                } @else if (problem.failuresBeforeFirstAC !== problem.failures) {
-                  <span class="fail-detail">{{ problem.failuresBeforeFirstAC }} pre-AC</span>
-                } @else {
-                  <span class="fail-detail">all pre-AC</span>
-                }
-              </td>
-
-              <td class="col-acs">
-                <span class="ac-count">{{ problem.acs }}</span>
-                <span class="fail-detail">{{ problem.submissions }} subs</span>
+                <span class="fail-count">{{ problem.failures }}</span>
+                <span class="fail-detail">{{ problem.submissions }} tries</span>
               </td>
 
               <td class="col-last">
-                <span class="age">{{ timeAgo(problem.lastSubmission, a.now) }}</span>
-                <span class="age-date">{{ formatDate(problem.lastSubmission) }}</span>
-              </td>
-
-              <td class="col-first">
-                @if (problem.firstAC) {
-                  <span class="age">{{ timeAgo(problem.firstAC, a.now) }}</span>
-                  <span class="age-date">{{ formatDate(problem.firstAC) }}</span>
-                } @else {
-                  <span class="never-solved">never</span>
-                }
+                <span class="age">{{ timeAgo(problem.lastFailure, a.now) }}</span>
+                <span class="age-date">{{ formatDate(problem.lastFailure) }}</span>
               </td>
 
               <td class="col-tier">
                 <span
                   class="tier-tag"
-                  [style.color]="tierMeta[problem.viewTier].color"
-                  [style.border-color]="tierMeta[problem.viewTier].color + '4d'"
-                  [style.background]="tierMeta[problem.viewTier].color + '17'"
+                  [style.color]="tierMeta[problem.tier].color"
+                  [style.border-color]="tierMeta[problem.tier].color + '4d'"
+                  [style.background]="tierMeta[problem.tier].color + '17'"
                 >
-                  {{ tierMeta[problem.viewTier].label }}
+                  {{ tierMeta[problem.tier].label }}
                 </span>
               </td>
 
@@ -211,33 +152,27 @@
 
             @if (expanded() === problem.key) {
               <tr class="detail-row">
-                <td colspan="8">
+                <td colspan="6">
                   <div class="detail">
                     <div class="detail-top">
                       <div class="detail-stats">
                         <div class="detail-stat">
-                          <span>All failures</span>
+                          <span>Failed tries</span>
                           <strong class="danger">{{ problem.failures }}</strong>
-                        </div>
-                        <div class="detail-stat">
-                          <span>Before first AC</span>
-                          <strong>{{ problem.failuresBeforeFirstAC }}</strong>
                         </div>
                         <div class="detail-stat">
                           <span>Submissions</span>
                           <strong>{{ problem.submissions }}</strong>
                         </div>
                         <div class="detail-stat">
-                          <span>Accepted</span>
-                          <strong class="green">{{ problem.acs }}</strong>
-                        </div>
-                        <div class="detail-stat">
-                          <span>Contest / practice</span>
-                          <strong>{{ problem.contestSubmissions }} / {{ problem.practiceSubmissions }}</strong>
-                        </div>
-                        <div class="detail-stat">
-                          <span>Last failure</span>
+                          <span>Last failed try</span>
                           <strong>{{ timeAgo(problem.lastFailure, a.now) }}</strong>
+                        </div>
+                        <div class="detail-stat">
+                          <span>Solved by {{ endMonth() }}</span>
+                          <strong [class.green]="problem.solvedByEnd">
+                            {{ problem.solvedByEnd ? 'Yes' : 'No' }}
+                          </strong>
                         </div>
                       </div>
 
@@ -248,7 +183,7 @@
                           }
                         </div>
                         <div class="verdict-breakdown">
-                          <span class="detail-label">Verdicts</span>
+                          <span class="detail-label">Failed verdicts</span>
                           <div class="verdict-chips">
                             @for (verdict of problem.verdicts; track verdict.verdict) {
                               <span class="verdict-chip">
@@ -256,15 +191,28 @@
                                   {{ verdictShort(verdict.verdict) }}
                                 </span>
                                 <span>{{ verdict.count }}</span>
-                                <span class="verdict-name">{{ verdictLabel(verdict.verdict) }}</span>
+                                <span class="verdict-name">{{
+                                  verdictLabel(verdict.verdict)
+                                }}</span>
                               </span>
                             } @empty {
-                              <span class="muted">No failed submissions.</span>
+                              <span class="muted">No failed submissions in this window.</span>
                             }
                           </div>
                         </div>
+                        @if (problem.solvedLater) {
+                          <p class="later-note">
+                            You solved this problem after the selected window ended. It still counts
+                            as never solved <em>for this window</em>.
+                          </p>
+                        }
                         <div class="detail-actions">
-                          <a class="btn btn-sm" [href]="problem.url" target="_blank" rel="noreferrer">
+                          <a
+                            class="btn btn-sm"
+                            [href]="problem.url"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
                             Open on Codeforces ↗
                           </a>
                         </div>
@@ -273,8 +221,10 @@
 
                     <div class="timeline">
                       <div class="timeline-head">
-                        <span class="detail-label">Attempt timeline</span>
-                        <span class="timeline-note">oldest → newest · {{ problem.attempts.length }} submissions</span>
+                        <span class="detail-label">Attempts in this window</span>
+                        <span class="timeline-note">
+                          oldest → newest · {{ problem.attempts.length }} submissions
+                        </span>
                       </div>
                       <div class="attempt-list">
                         @for (attempt of problem.attempts; track attempt.id) {
@@ -328,7 +278,7 @@
     <div class="panel">
       <div class="empty-state">
         <strong>No problems match these filters.</strong>
-        <p>Try a different bucket, rating range, or clear the search.</p>
+        <p>Try another bucket, clear the search, or widen the time window.</p>
         <button type="button" class="btn btn-sm" (click)="reset()">Reset filters</button>
       </div>
     </div>

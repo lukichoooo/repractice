@@ -7,7 +7,9 @@
           <span class="orbit-ring"></span>
         </div>
         <p class="eyebrow">Analyzing</p>
-        <h1>Reading <span class="handle-accent">&#64;{{ handle() }}</span></h1>
+        <h1>
+          Reading <span class="handle-accent">&#64;{{ handle() }}</span>
+        </h1>
         <p class="loading-progress" role="status" aria-live="polite">{{ progress() }}</p>
         <div class="loader-steps" aria-hidden="true">
           <span class="done">Profile</span>
@@ -15,8 +17,8 @@
           <span>Rating</span>
         </div>
         <p class="loading-hint">
-          Codeforces allows one request every two seconds. A first-time analysis usually takes a
-          few seconds; large histories can take longer.
+          Codeforces allows one request every two seconds. A first-time analysis usually takes a few
+          seconds; large histories can take longer.
         </p>
       </div>
     </section>
@@ -92,7 +94,7 @@
       <div class="hero-side">
         <div class="updated">
           <span class="updated-label">Updated {{ updatedLabel() }}</span>
-          <span class="updated-sub">Public submissions · cached locally</span>
+          <span class="updated-sub">{{ windowLabel() }} · cached locally</span>
         </div>
         <button
           type="button"
@@ -109,6 +111,17 @@
         </button>
       </div>
     </section>
+
+    @if (bounds(); as b) {
+      @if (timeWindow(); as tw) {
+        <app-window-picker
+          [bounds]="b"
+          [window]="tw"
+          [fallback]="fallbackNotice()"
+          (windowChange)="setWindow($event)"
+        />
+      }
+    }
 
     <nav class="tabs" aria-label="Report sections">
       @for (tab of tabs; track tab.id) {
@@ -128,24 +141,36 @@
       }
     </nav>
 
-    <div class="tab-panel fade-in">
-      @switch (activeTab()) {
-        @case ('overview') {
-          <app-overview [analysis]="a" (openTab)="setTab($event)" />
+    @if (windowEmpty()) {
+      <div class="panel window-empty fade-in">
+        <div class="empty-state">
+          @if (a.allTime) {
+            <strong>No submissions yet.</strong>
+            <p>This account has no public submissions for us to analyze.</p>
+          } @else {
+            <strong>No submissions in this window.</strong>
+            <p>Pick a wider range above, or jump back to everything you have submitted.</p>
+            <button type="button" class="btn btn-sm" (click)="showAllTime()">Show all time</button>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="tab-panel fade-in">
+        @switch (activeTab()) {
+          @case ('summary') {
+            <app-summary [analysis]="a" (openTab)="setTab($event)" />
+          }
+          @case ('struggles') {
+            <app-struggles [analysis]="a" />
+          }
+          @case ('mashup') {
+            <app-mashup [analysis]="a" />
+          }
+          @case ('progress') {
+            <app-progress [analysis]="a" />
+          }
         }
-        @case ('struggles') {
-          <app-struggles [analysis]="a" />
-        }
-        @case ('topics') {
-          <app-topics [analysis]="a" />
-        }
-        @case ('activity') {
-          <app-activity [analysis]="a" />
-        }
-        @case ('practice') {
-          <app-practice [analysis]="a" />
-        }
-      }
-    </div>
+      </div>
+    }
   }
 </div>

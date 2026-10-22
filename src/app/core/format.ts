@@ -8,42 +8,42 @@ export const TIER_META: Record<
     label: 'Must redo',
     short: 'MUST',
     color: '#ff5d6c',
-    description: '10+ failed submissions',
+    description: '10 or more failed tries',
     priority: 0,
   },
   should: {
     label: 'Should redo',
     short: 'SHOULD',
     color: '#ffa94d',
-    description: '5–9 failed submissions',
+    description: '5–9 failed tries',
     priority: 1,
   },
   maybe: {
     label: 'Maybe redo',
     short: 'MAYBE',
     color: '#ffd43b',
-    description: '2–4 failed submissions',
+    description: '2–4 failed tries',
     priority: 2,
   },
   unsolved: {
     label: 'Never solved',
     short: 'OPEN',
     color: '#c084fc',
-    description: 'No accepted submission yet',
+    description: 'No accepted solution by the end of the window',
     priority: 3,
   },
   'tried-once': {
     label: 'Tried once',
     short: 'ONCE',
     color: '#8fa3bf',
-    description: 'One attempt, no accepted submission',
+    description: 'One failed try, not solved',
     priority: 4,
   },
   solid: {
     label: 'Solid',
     short: 'SOLID',
     color: '#3ddc97',
-    description: '0–1 failed submissions',
+    description: 'Solved with 0–1 failed tries',
     priority: 5,
   },
 };
@@ -205,9 +205,7 @@ export function submissionUrl(contestId: number | undefined, submissionId: numbe
 }
 
 export function problemCode(problem: CfProblem): string {
-  return problem.contestId == null
-    ? `#${problem.index}`
-    : `${problem.contestId}${problem.index}`;
+  return problem.contestId == null ? `#${problem.index}` : `${problem.contestId}${problem.index}`;
 }
 
 export function capitalize(value: string): string {

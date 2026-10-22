@@ -609,8 +609,7 @@
   border-radius: 20px;
   background:
     radial-gradient(600px 200px at 90% 10%, rgba(255, 122, 69, 0.14), transparent 70%),
-    linear-gradient(135deg, rgba(91, 141, 239, 0.1), rgba(91, 141, 239, 0.02)),
-    var(--panel);
+    linear-gradient(135deg, rgba(91, 141, 239, 0.1), rgba(91, 141, 239, 0.02)), var(--panel);
 }
 
 .cta-inner h2 {
