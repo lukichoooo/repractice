@@ -17,8 +17,8 @@ Enter a public Codeforces handle — no login, no backend, no API key.
 - **Weak topics** — the three tags where latest-solve failed tries cluster most in the selected window.
 - **Timed mashup** — choose 30 minutes to 3 hours, get 2–7 problems from your struggles, and copy lines in Codeforces format:
   ```
-  A - 2237/B
-  B - 2314/C
+  A - 2237B
+  B - 2314C
   ```
 - **Progress** — contests, rating at the end of the window, best rating in range, and monthly submissions. Rating and activity charts use the same window.
 

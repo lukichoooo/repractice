@@ -24,7 +24,7 @@ export function mashupCount(minutes: number): number {
 }
 
 export function mashupCode(problem: ProblemAnalysis): string {
-  return problem.contestId == null ? problem.index : `${problem.contestId}/${problem.index}`;
+  return problem.contestId == null ? problem.index : `${problem.contestId}${problem.index}`;
 }
 
 export function mashupLine(pick: MashupPick): string {

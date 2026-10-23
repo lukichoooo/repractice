@@ -114,7 +114,7 @@ describe('mashup', () => {
       30,
       1,
     );
-    expect(picks.map((pick) => mashupCode(pick.problem))).toEqual(['2237/B', '2314/C']);
-    expect(mashupText(picks)).toBe('A - 2237/B\nB - 2314/C');
+    expect(picks.map((pick) => mashupCode(pick.problem))).toEqual(['2237B', '2314C']);
+    expect(mashupText(picks)).toBe('A - 2237B\nB - 2314C');
   });
 });
