@@ -36,11 +36,11 @@ function problemKey(submission: CfSubmission): string {
   return `${problem.problemsetName ?? 'custom'}-${problem.index}-${problem.name}`;
 }
 
-export function tierFor(failures: number, solvedByEnd: boolean): Tier {
-  if (!solvedByEnd) return failures >= 2 ? 'unsolved' : 'tried-once';
-  if (failures >= 10) return 'must';
-  if (failures >= 5) return 'should';
-  if (failures >= 2) return 'maybe';
+export function tierFor(latestFailures: number, solvedByEnd: boolean): Tier {
+  if (!solvedByEnd) return latestFailures >= 2 ? 'unsolved' : 'tried-once';
+  if (latestFailures >= 10) return 'must';
+  if (latestFailures >= 5) return 'should';
+  if (latestFailures >= 2) return 'maybe';
   return 'solid';
 }
 
@@ -74,6 +74,34 @@ function buildProblem(
   const solvedByEnd = allAcs.some((submission) => submission.creationTimeSeconds <= windowEnd);
   const everSolved = allAcs.length > 0;
 
+  let lastAcIndex = -1;
+  for (let index = allOrdered.length - 1; index >= 0; index--) {
+    const candidate = allOrdered[index];
+    if (candidate.verdict === 'OK' && candidate.creationTimeSeconds <= windowEnd) {
+      lastAcIndex = index;
+      break;
+    }
+  }
+
+  let previousAc: CfSubmission | undefined;
+  for (let index = lastAcIndex - 1; index >= 0; index--) {
+    if (allOrdered[index].verdict === 'OK') {
+      previousAc = allOrdered[index];
+      break;
+    }
+  }
+
+  const afterPreviousAc = (submission: CfSubmission): boolean =>
+    previousAc == null ||
+    submission.creationTimeSeconds > previousAc.creationTimeSeconds ||
+    (submission.creationTimeSeconds === previousAc.creationTimeSeconds &&
+      submission.id > previousAc.id);
+  const latestList = previousAc ? ordered.filter(afterPreviousAc) : ordered;
+  const latestFailuresList = latestList.filter(isFailure);
+  const latestFailures = latestFailuresList.length;
+  const latestFailure = latestFailuresList[latestFailuresList.length - 1]?.creationTimeSeconds;
+  const latestVerdicts = buildVerdicts(latestFailuresList);
+
   const problem = ordered[0].problem;
   const failures = failuresList.length;
 
@@ -85,9 +113,11 @@ function buildProblem(
     rating: problem.rating,
     tags: problem.tags ?? [],
     url: problemUrl(problem),
-    tier: tierFor(failures, solvedByEnd),
+    tier: tierFor(latestFailures, solvedByEnd),
     failures,
+    latestFailures,
     submissions: ordered.length,
+    latestSubmissions: latestList.length,
     acs: windowAcs.length,
     solvedByEnd,
     everSolved,
@@ -96,6 +126,8 @@ function buildProblem(
     firstAC,
     lastSubmission: ordered[ordered.length - 1].creationTimeSeconds,
     lastFailure: failuresList[failuresList.length - 1]?.creationTimeSeconds,
+    latestEpisodeStart: previousAc?.creationTimeSeconds,
+    latestFailure,
     solvedInContest: windowAcs.some(
       (submission) => submission.author.participantType === 'CONTESTANT',
     ),
@@ -106,6 +138,7 @@ function buildProblem(
       (submission) => submission.author.participantType !== 'CONTESTANT',
     ).length,
     verdicts: buildVerdicts(failuresList),
+    latestVerdicts,
     attempts: ordered.map((submission) => ({
       id: submission.id,
       time: submission.creationTimeSeconds,
@@ -259,10 +292,10 @@ function buildTags(problems: ProblemAnalysis[]): TagStats[] {
         map.set(tag, acc);
       }
       acc.problems++;
-      acc.submissions += problem.submissions;
-      acc.failures += problem.failures;
+      acc.submissions += problem.latestSubmissions;
+      acc.failures += problem.latestFailures;
       if (problem.solvedByEnd) acc.solved++;
-      for (const verdict of problem.verdicts) {
+      for (const verdict of problem.latestVerdicts) {
         acc.verdicts.set(verdict.verdict, (acc.verdicts.get(verdict.verdict) ?? 0) + verdict.count);
       }
     }
@@ -328,22 +361,36 @@ export function sortProblems(problems: ProblemAnalysis[], sort: StruggleSort): P
     'tried-once': 4,
     solid: 5,
   };
-  const lastTry = (problem: ProblemAnalysis) => problem.lastFailure ?? problem.lastSubmission;
+  const latestFail = (problem: ProblemAnalysis) => problem.latestFailure ?? Number.MAX_SAFE_INTEGER;
   switch (sort) {
     case 'failures':
-      return copy.sort((a, b) => b.failures - a.failures || lastTry(a) - lastTry(b));
+      return copy.sort(
+        (a, b) =>
+          b.latestFailures - a.latestFailures ||
+          b.failures - a.failures ||
+          latestFail(a) - latestFail(b),
+      );
     case 'oldest':
-      return copy.sort((a, b) => lastTry(a) - lastTry(b));
+      return copy.sort((a, b) => latestFail(a) - latestFail(b));
     case 'newest':
-      return copy.sort((a, b) => lastTry(b) - lastTry(a));
+      return copy.sort(
+        (a, b) =>
+          (b.latestFailure ?? Number.MIN_SAFE_INTEGER) -
+          (a.latestFailure ?? Number.MIN_SAFE_INTEGER),
+      );
     case 'rating':
-      return copy.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1) || b.failures - a.failures);
+      return copy.sort(
+        (a, b) =>
+          (b.rating ?? -1) - (a.rating ?? -1) ||
+          b.latestFailures - a.latestFailures ||
+          b.failures - a.failures,
+      );
     default:
       return copy.sort(
         (a, b) =>
           tierPriority[a.tier] - tierPriority[b.tier] ||
-          b.failures - a.failures ||
-          lastTry(a) - lastTry(b),
+          b.latestFailures - a.latestFailures ||
+          latestFail(a) - latestFail(b),
       );
   }
 }

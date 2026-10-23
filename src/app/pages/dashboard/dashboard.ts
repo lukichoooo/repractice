@@ -30,8 +30,8 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: 'summary', label: 'Summary', hint: 'The short version' },
-  { id: 'struggles', label: 'Struggles', hint: 'Problems that took too many tries' },
-  { id: 'mashup', label: 'Mashup', hint: 'A timed set from your worst problems' },
+  { id: 'struggles', label: 'Struggles', hint: 'Problems that still need work' },
+  { id: 'mashup', label: 'Mashup', hint: 'A timed set from your open struggles' },
   { id: 'progress', label: 'Progress', hint: 'Rating and submissions in this window' },
 ];
 

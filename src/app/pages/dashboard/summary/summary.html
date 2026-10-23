@@ -12,7 +12,7 @@
     </article>
 
     <article class="stat-card stat-card-red">
-      <p class="stat-label">Failed tries</p>
+      <p class="stat-label">All failed tries</p>
       <p class="stat-value">{{ formatNumber(a.totals.failures) }}</p>
       <p class="stat-sub">
         out of {{ formatNumber(a.totals.submissions) }} submissions in this window
@@ -22,7 +22,7 @@
     <article class="stat-card stat-card-orange">
       <p class="stat-label">Must redo</p>
       <p class="stat-value">{{ formatNumber(a.totals.mustRedo) }}</p>
-      <p class="stat-sub">problems with 10 or more failed tries</p>
+      <p class="stat-sub">solved problems with 10+ failed tries in the latest solve</p>
     </article>
 
     <article class="stat-card stat-card-purple">
@@ -42,7 +42,7 @@
       <header class="panel-header">
         <div>
           <h2>Biggest struggles</h2>
-          <p class="panel-sub">The problems that fought back the most</p>
+          <p class="panel-sub">The problems that still need the most work</p>
         </div>
         @if (topStruggles().length) {
           <button type="button" class="link-button" (click)="openTab.emit('struggles')">
@@ -71,14 +71,18 @@
               </span>
               <span
                 class="tier-tag"
+                [title]="tierMeta[problem.tier].description"
                 [style.color]="tierMeta[problem.tier].color"
                 [style.border-color]="tierMeta[problem.tier].color + '4d'"
                 [style.background]="tierMeta[problem.tier].color + '17'"
               >
                 {{ tierMeta[problem.tier].label }}
               </span>
-              <span class="mini-fails">{{ problem.failures }}<small>fails</small></span>
-              <span class="mini-age">{{ timeAgo(problem.lastFailure, a.now) }}</span>
+              <span class="mini-fails">
+                {{ problem.latestFailures }}
+                <small>{{ problem.solvedByEnd ? 'latest fails' : 'fails' }}</small>
+              </span>
+              <span class="mini-age">{{ timeAgo(problem.latestFailure, a.now) }}</span>
             </a>
           }
         </div>
@@ -86,10 +90,10 @@
         <div class="empty-state">
           @if (a.allTime) {
             <strong>No struggles here.</strong>
-            <p>Nothing crossed the 2-failure mark in this range.</p>
+            <p>No problem needs a redo yet.</p>
           } @else {
             <strong>No struggles in this window.</strong>
-            <p>Nothing crossed the 2-failure mark. Try a longer range to look further back.</p>
+            <p>No problem needs a redo yet. Try a longer range to look further back.</p>
           }
         </div>
       }
@@ -99,7 +103,7 @@
       <header class="panel-header">
         <div>
           <h2>Weakest topics</h2>
-          <p class="panel-sub">Where your failed tries cluster</p>
+          <p class="panel-sub">Where your recent practice struggles</p>
         </div>
       </header>
 
@@ -139,7 +143,7 @@
         <p class="eyebrow">Ready to practice?</p>
         <h2>Turn these struggles into a timed mashup.</h2>
         <p>
-          Tell us how long you have. We will pick a set from your worst problems in this window and
+          Tell us how long you have. We will pick a set from the problems that still need work and
           give you copy-paste Codeforces lines.
         </p>
       </div>

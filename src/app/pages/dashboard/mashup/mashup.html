@@ -8,7 +8,8 @@
           <p class="eyebrow">Mashup builder</p>
           <h2>How long do you have?</h2>
           <p class="controls-sub">
-            Pick a session length. We will build a set from your worst problems in this window.
+            Pick a session length. We will build a set from the problems that still need work in
+            this window.
           </p>
         </div>
         <span class="pool-count">{{ pool().length }} struggles available</span>
@@ -72,6 +73,7 @@
               </span>
               <span
                 class="tier-tag"
+                [title]="tierMeta[pick.problem.tier].description"
                 [style.color]="tierMeta[pick.problem.tier].color"
                 [style.border-color]="tierMeta[pick.problem.tier].color + '4d'"
                 [style.background]="tierMeta[pick.problem.tier].color + '17'"
@@ -79,8 +81,8 @@
                 {{ tierMeta[pick.problem.tier].label }}
               </span>
               <span class="pick-fails">
-                {{ pick.problem.failures }}
-                <small>fails</small>
+                {{ pick.problem.latestFailures }}
+                <small>{{ pick.problem.solvedByEnd ? 'latest fails' : 'fails' }}</small>
               </span>
             </li>
           }
@@ -110,7 +112,7 @@
             the copied block is just the problem codes.
           </p>
           <div class="copy-meta">
-            <span>{{ a.totals.failures }} failed tries in this window</span>
+            <span>{{ a.totals.failures }} failed tries in this window (all attempts)</span>
             <span>{{ pool().length }} struggles in the pool</span>
           </div>
         </div>
@@ -121,8 +123,8 @@
       <div class="empty-state">
         <strong>No struggles to build from.</strong>
         <p>
-          No problem in this window has 2 or more failed tries. Pick a longer time window or a
-          different range above.
+          No problem in this window needs a redo yet. Pick a longer time window or a different range
+          above.
         </p>
       </div>
     </div>

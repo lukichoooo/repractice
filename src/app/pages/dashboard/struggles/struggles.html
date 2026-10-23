@@ -19,7 +19,7 @@
         <span>Sort by</span>
         <select class="field" [value]="sort()" (change)="setSort(selectValue($event))">
           <option value="priority">Most urgent</option>
-          <option value="failures">Most failed tries</option>
+          <option value="failures">Most fails (latest)</option>
           <option value="oldest">Oldest failed try</option>
           <option value="newest">Newest failed try</option>
           <option value="rating">Highest rating</option>
@@ -53,7 +53,9 @@
         }
       </p>
       <div class="result-actions">
-        <span class="window-note">Only submissions in the selected months are counted.</span>
+        <span class="window-note">
+          Window only · priority uses fails since your previous accepted solve.
+        </span>
         <button type="button" class="reset-btn" (click)="reset()">Reset filters</button>
       </div>
     </div>
@@ -66,7 +68,7 @@
           <tr>
             <th class="col-problem">Problem</th>
             <th class="col-rating">Rating</th>
-            <th class="col-fails">Failed</th>
+            <th class="col-fails">Fails</th>
             <th class="col-last">Last failed try</th>
             <th class="col-tier">Status</th>
             <th class="col-expand"><span class="sr-only">Details</span></th>
@@ -123,18 +125,30 @@
               </td>
 
               <td class="col-fails">
-                <span class="fail-count">{{ problem.failures }}</span>
-                <span class="fail-detail">{{ problem.submissions }} tries</span>
+                @if (problem.solvedByEnd) {
+                  <span class="fail-count">{{ problem.latestFailures }}</span>
+                  <span class="fail-detail">{{ problem.failures }} total</span>
+                } @else {
+                  <span class="fail-count">{{ problem.failures }}</span>
+                  <span class="fail-detail">{{ problem.submissions }} tries</span>
+                }
               </td>
 
               <td class="col-last">
-                <span class="age">{{ timeAgo(problem.lastFailure, a.now) }}</span>
-                <span class="age-date">{{ formatDate(problem.lastFailure) }}</span>
+                @if (problem.latestFailure) {
+                  <span class="age">{{ timeAgo(problem.latestFailure, a.now) }}</span>
+                  <span class="age-date">{{ formatDate(problem.latestFailure) }}</span>
+                } @else if (problem.solvedByEnd) {
+                  <span class="age clean">clean solve</span>
+                } @else {
+                  <span class="age">—</span>
+                }
               </td>
 
               <td class="col-tier">
                 <span
                   class="tier-tag"
+                  [title]="tierMeta[problem.tier].description"
                   [style.color]="tierMeta[problem.tier].color"
                   [style.border-color]="tierMeta[problem.tier].color + '4d'"
                   [style.background]="tierMeta[problem.tier].color + '17'"
@@ -157,16 +171,30 @@
                     <div class="detail-top">
                       <div class="detail-stats">
                         <div class="detail-stat">
-                          <span>Failed tries</span>
-                          <strong class="danger">{{ problem.failures }}</strong>
+                          <span>{{
+                            problem.solvedByEnd ? 'Latest solve fails' : 'Failed tries'
+                          }}</span>
+                          <strong class="danger">{{ problem.latestFailures }}</strong>
                         </div>
                         <div class="detail-stat">
-                          <span>Submissions</span>
+                          <span>{{
+                            problem.solvedByEnd ? 'Latest solve attempts' : 'Attempts'
+                          }}</span>
+                          <strong>{{ problem.latestSubmissions }}</strong>
+                        </div>
+                        <div class="detail-stat">
+                          <span>All failed tries</span>
+                          <strong>{{ problem.failures }}</strong>
+                        </div>
+                        <div class="detail-stat">
+                          <span>All submissions</span>
                           <strong>{{ problem.submissions }}</strong>
                         </div>
                         <div class="detail-stat">
                           <span>Last failed try</span>
-                          <strong>{{ timeAgo(problem.lastFailure, a.now) }}</strong>
+                          <strong>{{
+                            problem.latestFailure ? timeAgo(problem.latestFailure, a.now) : 'clean'
+                          }}</strong>
                         </div>
                         <div class="detail-stat">
                           <span>Solved by {{ endMonth() }}</span>
@@ -183,9 +211,11 @@
                           }
                         </div>
                         <div class="verdict-breakdown">
-                          <span class="detail-label">Failed verdicts</span>
+                          <span class="detail-label">{{
+                            problem.solvedByEnd ? 'Latest solve verdicts' : 'Failed verdicts'
+                          }}</span>
                           <div class="verdict-chips">
-                            @for (verdict of problem.verdicts; track verdict.verdict) {
+                            @for (verdict of problem.latestVerdicts; track verdict.verdict) {
                               <span class="verdict-chip">
                                 <span [class]="verdictBadgeClass(verdict.verdict)">
                                   {{ verdictShort(verdict.verdict) }}
@@ -196,10 +226,19 @@
                                 }}</span>
                               </span>
                             } @empty {
-                              <span class="muted">No failed submissions in this window.</span>
+                              <span class="muted">No failed tries in the latest solve.</span>
                             }
                           </div>
                         </div>
+                        <p class="priority-note">
+                          @if (problem.solvedByEnd) {
+                            Latest solve counts failed tries since your previous accepted
+                            submission. Older attempts are only in the total.
+                          } @else {
+                            No accepted solution in this window, so every failed try counts. A solve
+                            after the window does not reset this report.
+                          }
+                        </p>
                         @if (problem.solvedLater) {
                           <p class="later-note">
                             You solved this problem after the selected window ended. It still counts
@@ -223,12 +262,20 @@
                       <div class="timeline-head">
                         <span class="detail-label">Attempts in this window</span>
                         <span class="timeline-note">
-                          oldest → newest · {{ problem.attempts.length }} submissions
+                          oldest → newest · {{ problem.attempts.length }} submissions · outlined =
+                          {{ problem.solvedByEnd ? 'latest solve' : 'counted for priority' }}
                         </span>
                       </div>
                       <div class="attempt-list">
                         @for (attempt of problem.attempts; track attempt.id) {
-                          <div class="attempt" [class.is-ac]="attempt.verdict === 'OK'">
+                          <div
+                            class="attempt"
+                            [class.is-ac]="attempt.verdict === 'OK'"
+                            [class.is-latest]="
+                              problem.latestEpisodeStart == null ||
+                              attempt.time > problem.latestEpisodeStart
+                            "
+                          >
                             <span class="attempt-dot"></span>
                             <span class="attempt-date">
                               {{ formatDate(attempt.time) }}

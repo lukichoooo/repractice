@@ -122,8 +122,13 @@ export interface ProblemAnalysis {
   tags: string[];
   url: string;
   tier: Tier;
+  /** Every failed try inside the selected window. */
   failures: number;
+  /** Failed tries in the latest solve episode (since the previous accepted solve). */
+  latestFailures: number;
   submissions: number;
+  /** Submissions in the latest solve episode, inside the selected window. */
+  latestSubmissions: number;
   acs: number;
   /** A correct submission exists on or before the end of the selected window. */
   solvedByEnd: boolean;
@@ -134,11 +139,19 @@ export interface ProblemAnalysis {
   firstAttempt: number;
   firstAC?: number;
   lastSubmission: number;
+  /** Last failed try anywhere in the selected window. */
   lastFailure?: number;
+  /** Start of the latest solve episode: the previous accepted submission. */
+  latestEpisodeStart?: number;
+  /** Last failed try in the latest solve episode. */
+  latestFailure?: number;
   solvedInContest: boolean;
   contestSubmissions: number;
   practiceSubmissions: number;
+  /** Failed verdicts anywhere in the selected window. */
   verdicts: VerdictStat[];
+  /** Failed verdicts in the latest solve episode. */
+  latestVerdicts: VerdictStat[];
   attempts: Attempt[];
 }
 

@@ -8,6 +8,8 @@ function problem(
   failures: number,
   rating = 1500,
 ): ProblemAnalysis {
+  const solved = tier === 'solid' || tier === 'must' || tier === 'should' || tier === 'maybe';
+  const submissions = solved ? failures + 1 : failures;
   return {
     key: `${contestId}-${index}`,
     contestId,
@@ -18,17 +20,21 @@ function problem(
     url: `https://codeforces.com/problemset/problem/${contestId}/${index}`,
     tier,
     failures,
-    submissions: failures + 1,
-    acs: tier === 'solid' || tier === 'must' || tier === 'should' || tier === 'maybe' ? 1 : 0,
-    solvedByEnd: tier !== 'unsolved' && tier !== 'tried-once',
-    everSolved: tier !== 'unsolved' && tier !== 'tried-once',
+    latestFailures: failures,
+    submissions,
+    latestSubmissions: submissions,
+    acs: solved ? 1 : 0,
+    solvedByEnd: solved,
+    everSolved: solved,
     solvedLater: false,
     firstAttempt: 1,
     lastSubmission: 1,
+    latestFailure: failures ? 1 : undefined,
     solvedInContest: false,
     contestSubmissions: 0,
-    practiceSubmissions: failures + 1,
+    practiceSubmissions: submissions,
     verdicts: [],
+    latestVerdicts: [],
     attempts: [],
   };
 }

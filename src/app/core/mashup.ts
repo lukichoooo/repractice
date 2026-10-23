@@ -75,7 +75,7 @@ export function buildMashup(problems: ProblemAnalysis[], minutes: number, seed =
     const group = groups.get(tier) ?? [];
     group.sort(
       (a, b) =>
-        b.failures - a.failures ||
+        b.latestFailures - a.latestFailures ||
         a.lastSubmission - b.lastSubmission ||
         a.name.localeCompare(b.name),
     );

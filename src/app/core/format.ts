@@ -8,21 +8,21 @@ export const TIER_META: Record<
     label: 'Must redo',
     short: 'MUST',
     color: '#ff5d6c',
-    description: '10 or more failed tries',
+    description: '10+ failed tries in your latest solve',
     priority: 0,
   },
   should: {
     label: 'Should redo',
     short: 'SHOULD',
     color: '#ffa94d',
-    description: '5–9 failed tries',
+    description: '5–9 failed tries in your latest solve',
     priority: 1,
   },
   maybe: {
     label: 'Maybe redo',
     short: 'MAYBE',
     color: '#ffd43b',
-    description: '2–4 failed tries',
+    description: '2–4 failed tries in your latest solve',
     priority: 2,
   },
   unsolved: {
@@ -43,7 +43,7 @@ export const TIER_META: Record<
     label: 'Solid',
     short: 'SOLID',
     color: '#3ddc97',
-    description: 'Solved with 0–1 failed tries',
+    description: 'Solved with 0–1 failed tries in your latest solve',
     priority: 5,
   },
 };
