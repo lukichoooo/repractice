@@ -156,7 +156,6 @@ export function analyze(
   dataset: Dataset,
   now = Date.now(),
   requestedWindow: TimeWindow | null = null,
-  filter?: { minRating: number; maxRating: number }
 ): Analysis {
   const bounds = monthBounds(dataset.submissions, now);
   const effectiveWindow =
@@ -166,9 +165,7 @@ export function analyze(
 
   const windowSubmissions = dataset.submissions.filter(
     (submission) =>
-      submission.creationTimeSeconds >= range.start && submission.creationTimeSeconds <= range.end &&
-      submission.problem.rating >= (filter?.minRating ?? -Infinity) &&
-      submission.problem.rating <= (filter?.maxRating ?? Infinity)
+      submission.creationTimeSeconds >= range.start && submission.creationTimeSeconds <= range.end,
   );
 
   const allGroups = new Map<string, CfSubmission[]>();
