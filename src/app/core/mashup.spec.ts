@@ -23,6 +23,7 @@ function problem(
     latestFailures: failures,
     submissions,
     latestSubmissions: submissions,
+    latestEpisodeSolved: solved,
     acs: solved ? 1 : 0,
     solvedByEnd: solved,
     everSolved: solved,

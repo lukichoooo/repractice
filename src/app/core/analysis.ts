@@ -4,6 +4,7 @@ import type {
   Dataset,
   MonthPoint,
   ProblemAnalysis,
+  RatingRange,
   TagStats,
   Tier,
   TimeWindow,
@@ -36,12 +37,37 @@ function problemKey(submission: CfSubmission): string {
   return `${problem.problemsetName ?? 'custom'}-${problem.index}-${problem.name}`;
 }
 
-export function tierFor(latestFailures: number, solvedByEnd: boolean): Tier {
-  if (!solvedByEnd) return latestFailures >= 2 ? 'unsolved' : 'tried-once';
-  if (latestFailures >= 10) return 'must';
-  if (latestFailures >= 5) return 'should';
-  if (latestFailures >= 2) return 'maybe';
-  return 'solid';
+export function tierFor(
+  latestSubmissions: number,
+  latestEpisodeSolved: boolean,
+  solvedByEnd: boolean,
+): Tier {
+  if (!solvedByEnd) return latestSubmissions >= 2 ? 'unsolved' : 'tried-once';
+  if (!latestEpisodeSolved) return 'must';
+  if (latestSubmissions <= 1) return 'solid';
+  if (latestSubmissions === 2) return 'maybe';
+  if (latestSubmissions <= 4) return 'should';
+  return 'must';
+}
+
+export const RATING_FLOOR = 800;
+export const RATING_CEILING = 3500;
+export const RATING_STEP = 100;
+const RATING_SPREAD = 200;
+
+/** Default focus band around the user's rating, rounded to 100-point steps. */
+export function defaultRatingRange(rating?: number): RatingRange {
+  if (rating == null) return { min: RATING_FLOOR, max: RATING_CEILING };
+
+  const min = Math.max(
+    RATING_FLOOR,
+    Math.floor((rating - RATING_SPREAD) / RATING_STEP) * RATING_STEP,
+  );
+  const max = Math.min(
+    RATING_CEILING,
+    Math.ceil((rating + RATING_SPREAD) / RATING_STEP) * RATING_STEP,
+  );
+  return { min, max };
 }
 
 function buildVerdicts(failures: CfSubmission[]): VerdictStat[] {
@@ -99,6 +125,8 @@ function buildProblem(
   const latestList = previousAc ? ordered.filter(afterPreviousAc) : ordered;
   const latestFailuresList = latestList.filter(isFailure);
   const latestFailures = latestFailuresList.length;
+  const latestEpisodeSolved =
+    latestList.length > 0 && latestList[latestList.length - 1].verdict === 'OK';
   const latestFailure = latestFailuresList[latestFailuresList.length - 1]?.creationTimeSeconds;
   const latestVerdicts = buildVerdicts(latestFailuresList);
 
@@ -113,11 +141,12 @@ function buildProblem(
     rating: problem.rating,
     tags: problem.tags ?? [],
     url: problemUrl(problem),
-    tier: tierFor(latestFailures, solvedByEnd),
+    tier: tierFor(latestList.length, latestEpisodeSolved, solvedByEnd),
     failures,
     latestFailures,
     submissions: ordered.length,
     latestSubmissions: latestList.length,
+    latestEpisodeSolved,
     acs: windowAcs.length,
     solvedByEnd,
     everSolved,
@@ -156,6 +185,7 @@ export function analyze(
   dataset: Dataset,
   now = Date.now(),
   requestedWindow: TimeWindow | null = null,
+  ratingRange: RatingRange | null = null,
 ): Analysis {
   const bounds = monthBounds(dataset.submissions, now);
   const effectiveWindow =
@@ -163,9 +193,17 @@ export function analyze(
   const allTime = requestedWindow == null || isAllTime(effectiveWindow, bounds);
   const range = windowSeconds(effectiveWindow);
 
+  const matchesRating = (submission: CfSubmission): boolean => {
+    if (!ratingRange) return true;
+    const rating = submission.problem.rating;
+    return rating != null && rating >= ratingRange.min && rating <= ratingRange.max;
+  };
+
   const windowSubmissions = dataset.submissions.filter(
     (submission) =>
-      submission.creationTimeSeconds >= range.start && submission.creationTimeSeconds <= range.end,
+      submission.creationTimeSeconds >= range.start &&
+      submission.creationTimeSeconds <= range.end &&
+      matchesRating(submission),
   );
 
   const allGroups = new Map<string, CfSubmission[]>();
@@ -366,6 +404,7 @@ export function sortProblems(problems: ProblemAnalysis[], sort: StruggleSort): P
     case 'failures':
       return copy.sort(
         (a, b) =>
+          b.latestSubmissions - a.latestSubmissions ||
           b.latestFailures - a.latestFailures ||
           b.failures - a.failures ||
           latestFail(a) - latestFail(b),
@@ -382,13 +421,14 @@ export function sortProblems(problems: ProblemAnalysis[], sort: StruggleSort): P
       return copy.sort(
         (a, b) =>
           (b.rating ?? -1) - (a.rating ?? -1) ||
-          b.latestFailures - a.latestFailures ||
-          b.failures - a.failures,
+          b.latestSubmissions - a.latestSubmissions ||
+          b.latestFailures - a.latestFailures,
       );
     default:
       return copy.sort(
         (a, b) =>
           tierPriority[a.tier] - tierPriority[b.tier] ||
+          b.latestSubmissions - a.latestSubmissions ||
           b.latestFailures - a.latestFailures ||
           latestFail(a) - latestFail(b),
       );

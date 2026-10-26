@@ -1,6 +1,4 @@
 <div class="mashup">
-  @let a = analysis();
-
   @if (pool().length) {
     <section class="controls panel">
       <div class="controls-head">
@@ -81,8 +79,8 @@
                 {{ tierMeta[pick.problem.tier].label }}
               </span>
               <span class="pick-fails">
-                {{ pick.problem.latestFailures }}
-                <small>{{ pick.problem.solvedByEnd ? 'latest fails' : 'fails' }}</small>
+                {{ pick.problem.latestSubmissions }}
+                <small>{{ pick.problem.solvedByEnd ? 'latest tries' : 'tries' }}</small>
               </span>
             </li>
           }
@@ -112,7 +110,7 @@
             the copied block is just the problem codes.
           </p>
           <div class="copy-meta">
-            <span>{{ a.totals.failures }} failed tries in this window (all attempts)</span>
+            <span>{{ picks().length }} problems selected</span>
             <span>{{ pool().length }} struggles in the pool</span>
           </div>
         </div>
@@ -123,8 +121,8 @@
       <div class="empty-state">
         <strong>No struggles to build from.</strong>
         <p>
-          No problem in this window needs a redo yet. Pick a longer time window or a different range
-          above.
+          No problem in this rating band needs a redo yet. Try a wider time window, a different
+          band, or “All ratings” above.
         </p>
       </div>
     </div>

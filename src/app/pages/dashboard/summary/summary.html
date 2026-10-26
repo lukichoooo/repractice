@@ -22,7 +22,7 @@
     <article class="stat-card stat-card-orange">
       <p class="stat-label">Must redo</p>
       <p class="stat-value">{{ formatNumber(a.totals.mustRedo) }}</p>
-      <p class="stat-sub">solved problems with 10+ failed tries in the latest solve</p>
+      <p class="stat-sub">solved problems that took 5+ submissions or ended on a fail</p>
     </article>
 
     <article class="stat-card stat-card-purple">
@@ -79,8 +79,8 @@
                 {{ tierMeta[problem.tier].label }}
               </span>
               <span class="mini-fails">
-                {{ problem.latestFailures }}
-                <small>{{ problem.solvedByEnd ? 'latest fails' : 'fails' }}</small>
+                {{ problem.latestSubmissions }}
+                <small>{{ problem.solvedByEnd ? 'latest tries' : 'tries' }}</small>
               </span>
               <span class="mini-age">{{ timeAgo(problem.latestFailure, a.now) }}</span>
             </a>
@@ -93,7 +93,10 @@
             <p>No problem needs a redo yet.</p>
           } @else {
             <strong>No struggles in this window.</strong>
-            <p>No problem needs a redo yet. Try a longer range to look further back.</p>
+            <p>
+              No problem needs a redo in this window and rating band. Try a longer range, a
+              different rating focus, or “All ratings”.
+            </p>
           }
         </div>
       }

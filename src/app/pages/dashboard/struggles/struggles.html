@@ -19,7 +19,7 @@
         <span>Sort by</span>
         <select class="field" [value]="sort()" (change)="setSort(selectValue($event))">
           <option value="priority">Most urgent</option>
-          <option value="failures">Most fails (latest)</option>
+          <option value="failures">Most tries (last attempt)</option>
           <option value="oldest">Oldest failed try</option>
           <option value="newest">Newest failed try</option>
           <option value="rating">Highest rating</option>
@@ -54,7 +54,7 @@
       </p>
       <div class="result-actions">
         <span class="window-note">
-          Window only · priority uses fails since your previous accepted solve.
+          Window only · priority uses submissions in your latest episode.
         </span>
         <button type="button" class="reset-btn" (click)="reset()">Reset filters</button>
       </div>
@@ -68,7 +68,7 @@
           <tr>
             <th class="col-problem">Problem</th>
             <th class="col-rating">Rating</th>
-            <th class="col-fails">Fails</th>
+            <th class="col-fails">Last episode</th>
             <th class="col-last">Last failed try</th>
             <th class="col-tier">Status</th>
             <th class="col-expand"><span class="sr-only">Details</span></th>
@@ -126,11 +126,13 @@
 
               <td class="col-fails">
                 @if (problem.solvedByEnd) {
-                  <span class="fail-count">{{ problem.latestFailures }}</span>
-                  <span class="fail-detail">{{ problem.failures }} total</span>
+                  <span class="fail-count">{{ problem.latestSubmissions }}</span>
+                  <span class="fail-detail">
+                    {{ problem.latestFailures }} fails · {{ problem.failures }} total
+                  </span>
                 } @else {
-                  <span class="fail-count">{{ problem.failures }}</span>
-                  <span class="fail-detail">{{ problem.submissions }} tries</span>
+                  <span class="fail-count">{{ problem.submissions }}</span>
+                  <span class="fail-detail">{{ problem.failures }} fails</span>
                 }
               </td>
 
@@ -171,16 +173,18 @@
                     <div class="detail-top">
                       <div class="detail-stats">
                         <div class="detail-stat">
-                          <span>{{
-                            problem.solvedByEnd ? 'Latest solve fails' : 'Failed tries'
-                          }}</span>
-                          <strong class="danger">{{ problem.latestFailures }}</strong>
+                          <span>Latest episode tries</span>
+                          <strong class="danger">{{
+                            problem.solvedByEnd ? problem.latestSubmissions : problem.submissions
+                          }}</strong>
                         </div>
                         <div class="detail-stat">
                           <span>{{
-                            problem.solvedByEnd ? 'Latest solve attempts' : 'Attempts'
+                            problem.solvedByEnd ? 'Latest episode fails' : 'Failed tries'
                           }}</span>
-                          <strong>{{ problem.latestSubmissions }}</strong>
+                          <strong>{{
+                            problem.solvedByEnd ? problem.latestFailures : problem.failures
+                          }}</strong>
                         </div>
                         <div class="detail-stat">
                           <span>All failed tries</span>
@@ -212,7 +216,7 @@
                         </div>
                         <div class="verdict-breakdown">
                           <span class="detail-label">{{
-                            problem.solvedByEnd ? 'Latest solve verdicts' : 'Failed verdicts'
+                            problem.solvedByEnd ? 'Latest episode verdicts' : 'Failed verdicts'
                           }}</span>
                           <div class="verdict-chips">
                             @for (verdict of problem.latestVerdicts; track verdict.verdict) {
@@ -226,14 +230,15 @@
                                 }}</span>
                               </span>
                             } @empty {
-                              <span class="muted">No failed tries in the latest solve.</span>
+                              <span class="muted">No failed tries in the latest episode.</span>
                             }
                           </div>
                         </div>
                         <p class="priority-note">
                           @if (problem.solvedByEnd) {
-                            Latest solve counts failed tries since your previous accepted
-                            submission. Older attempts are only in the total.
+                            The latest episode starts after your previous accepted submission.
+                            Priority uses how many submissions it took; older attempts are only in
+                            the total.
                           } @else {
                             No accepted solution in this window, so every failed try counts. A solve
                             after the window does not reset this report.
@@ -263,7 +268,7 @@
                         <span class="detail-label">Attempts in this window</span>
                         <span class="timeline-note">
                           oldest → newest · {{ problem.attempts.length }} submissions · outlined =
-                          {{ problem.solvedByEnd ? 'latest solve' : 'counted for priority' }}
+                          {{ problem.solvedByEnd ? 'latest episode' : 'counted for priority' }}
                         </span>
                       </div>
                       <div class="attempt-list">

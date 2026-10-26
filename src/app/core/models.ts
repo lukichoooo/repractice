@@ -95,6 +95,12 @@ export interface MonthBounds {
   max: string;
 }
 
+/** Inclusive problem-rating range. */
+export interface RatingRange {
+  min: number;
+  max: number;
+}
+
 export type Tier = 'must' | 'should' | 'maybe' | 'unsolved' | 'tried-once' | 'solid';
 
 export interface VerdictStat {
@@ -124,11 +130,13 @@ export interface ProblemAnalysis {
   tier: Tier;
   /** Every failed try inside the selected window. */
   failures: number;
-  /** Failed tries in the latest solve episode (since the previous accepted solve). */
+  /** Failed tries in the latest episode (since the previous accepted solve). */
   latestFailures: number;
   submissions: number;
-  /** Submissions in the latest solve episode, inside the selected window. */
+  /** Submissions in the latest episode, inside the selected window. */
   latestSubmissions: number;
+  /** Whether the last submission in the latest episode was accepted. */
+  latestEpisodeSolved: boolean;
   acs: number;
   /** A correct submission exists on or before the end of the selected window. */
   solvedByEnd: boolean;
@@ -141,16 +149,16 @@ export interface ProblemAnalysis {
   lastSubmission: number;
   /** Last failed try anywhere in the selected window. */
   lastFailure?: number;
-  /** Start of the latest solve episode: the previous accepted submission. */
+  /** Start of the latest episode: the previous accepted submission. */
   latestEpisodeStart?: number;
-  /** Last failed try in the latest solve episode. */
+  /** Last failed try in the latest episode. */
   latestFailure?: number;
   solvedInContest: boolean;
   contestSubmissions: number;
   practiceSubmissions: number;
   /** Failed verdicts anywhere in the selected window. */
   verdicts: VerdictStat[];
-  /** Failed verdicts in the latest solve episode. */
+  /** Failed verdicts in the latest episode. */
   latestVerdicts: VerdictStat[];
   attempts: Attempt[];
 }

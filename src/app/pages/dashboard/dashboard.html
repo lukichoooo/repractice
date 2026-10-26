@@ -123,6 +123,68 @@
       }
     }
 
+    <section class="rating-filter panel" aria-label="Rating focus">
+      <div class="rating-filter-head">
+        <div>
+          <p class="eyebrow">Rating focus</p>
+          <p class="rating-filter-value">
+            @if (ratingRange(); as range) {
+              {{ range.min }}–{{ range.max }}
+            } @else {
+              All ratings
+            }
+          </p>
+        </div>
+        <div class="rating-filter-actions">
+          <span class="rating-hint">
+            @if (ratingRange()) {
+              Problems rated near your current rating
+            } @else {
+              Every rated and unrated problem
+            }
+          </span>
+          <button type="button" class="btn btn-sm" (click)="resetRatingRange()">
+            Around my rating
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            (click)="showAllRatings()"
+            [disabled]="!ratingRange()"
+          >
+            All ratings
+          </button>
+        </div>
+      </div>
+
+      @if (ratingRange(); as range) {
+        <div class="rating-sliders">
+          <label class="rating-slider">
+            <span class="rating-slider-label">Min <strong>{{ range.min }}</strong></span>
+            <input
+              type="range"
+              [min]="ratingFloor"
+              [max]="ratingCeiling"
+              [step]="ratingStep"
+              [value]="range.min"
+              (input)="setRatingMin($event)"
+            />
+          </label>
+          <label class="rating-slider">
+            <span class="rating-slider-label">Max <strong>{{ range.max }}</strong></span>
+            <input
+              type="range"
+              [min]="ratingFloor"
+              [max]="ratingCeiling"
+              [step]="ratingStep"
+              [value]="range.max"
+              (input)="setRatingMax($event)"
+            />
+          </label>
+        </div>
+      }
+    </section>
+
     <nav class="tabs" aria-label="Report sections">
       @for (tab of tabs; track tab.id) {
         <button

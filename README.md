@@ -11,10 +11,11 @@ Enter a public Codeforces handle — no login, no backend, no API key.
 ## What it does
 
 - **Time window** — pick an inclusive month range. Only submissions inside it are counted. The default is six months back to two months back, with quick presets for the last 3 months, 6 months, year, 2 years, and all time.
-- **Struggle radar** — groups submissions by problem and judges the **latest solve episode**: failed tries since your previous accepted solve, including any failures after the latest AC. `10+` must redo, `5–9` should redo, `2–4` maybe redo. A clean re-solve resets the count, so old failures do not keep a problem urgent forever. Problems with no accepted solution by the end of the window get their own **Never solved** bucket.
+- **Struggle radar** — groups submissions by problem and judges the **latest episode**: how many submissions it took from your previous accepted solve. `5+` submissions or a failed last attempt means must redo, `3–4` means should redo, `2` means maybe, and a clean `1`-submission solve clears it. Old failures do not keep a problem urgent forever. Problems with no accepted solution by the end of the window get their own **Never solved** bucket.
+- **Rating focus** — a shared slider starts around your current rating (±200, rounded to 100s). It filters the problem pool, struggles, mashup and the summary cards so you can focus on the band that matters now. “All ratings” removes the filter.
 - **Solved status as of the window end** — an accepted submission before the window still counts as solved. A solve after the window does not; the row is labelled “solved later” so the history stays honest.
 - **Attempt timeline** — expand a problem to see every submission in the window, verdict, date, language, runtime and memory.
-- **Weak topics** — the three tags where latest-solve failed tries cluster most in the selected window.
+- **Weak topics** — the three tags where latest-episode tries cluster most in the selected window.
 - **Timed mashup** — choose 30 minutes to 3 hours, get 2–7 problems from your struggles, and copy lines in Codeforces format:
   ```
   A - 2237B
@@ -27,19 +28,21 @@ Enter a public Codeforces handle — no login, no backend, no API key.
 For each problem with at least one submission inside the selected window:
 
 - `failures` = every non-`OK` submission inside the window, including submissions after an accepted one
-- `latestFailures` = non-`OK` submissions inside the window after the **previous accepted solve**; this includes failures after the latest AC
-- `submissions` / `latestSubmissions` = all attempts in the window / attempts in the latest solve episode
+- `latestFailures` = non-`OK` submissions inside the window after the **previous accepted solve**
+- `submissions` / `latestSubmissions` = all attempts in the window / attempts in the latest episode
+- `latestEpisodeSolved` = the final submission in the latest episode was accepted
 - `solvedByEnd` = an `OK` exists on or before the end of the window
 - `everSolved` = an `OK` exists anywhere in the downloaded history
 - `solvedLater` = `everSolved` but not `solvedByEnd`
-- `tier` = based on `latestFailures` and `solvedByEnd`
+- `tier` = based on `latestSubmissions`, `latestEpisodeSolved` and `solvedByEnd`
 
 Only window submissions are counted. Full history is used only to find the previous AC that starts the latest episode. If there is no previous AC, the whole solve effort counts; a later AC does not reset an episode that ended after the window.
 
 Examples:
 
-- `AC → 20 fails → AC → 1 fail → AC` gives `latestFailures = 1`. The 20 failures belong to the older episode.
-- `AC → 20 fails → 1 fail → AC` gives `latestFailures = 21`. All 21 failures are after the previous AC, including the ones before the latest AC.
+- `AC → 20 fails → AC → 1 fail → AC` gives `latestSubmissions = 2` and `latestFailures = 1`. The 20 failures belong to the older episode.
+- `AC → 20 fails → 1 fail → AC` gives `latestSubmissions = 23` and `latestFailures = 21`.
+- `AC → 20 fails → AC` followed later by a clean `AC` gives `latestSubmissions = 1`, so the latest episode is solid.
 
 If the default window contains no submissions (for example, an inactive account), the app opens **all time** and shows a short note instead of an empty report.
 

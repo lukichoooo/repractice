@@ -1,4 +1,4 @@
-import { analyze, sortProblems, tierFor } from './analysis';
+import { analyze, defaultRatingRange, sortProblems, tierFor } from './analysis';
 import type { CfSubmission, Dataset } from './models';
 
 const USER = {
@@ -22,6 +22,7 @@ function submission(
   verdict: string | undefined,
   time: number,
   participantType = 'PRACTICE',
+  rating: number | undefined = 1500,
 ): CfSubmission {
   return {
     id: nextId++,
@@ -33,7 +34,7 @@ function submission(
       index,
       name: `Problem ${contestId}${index}`,
       type: 'PROGRAMMING',
-      rating: 1500,
+      rating,
       tags: ['dp'],
     },
     author: {
@@ -77,7 +78,8 @@ describe('analyze', () => {
     expect(problem.acs).toBe(1);
     expect(problem.submissions).toBe(4);
     expect(problem.latestSubmissions).toBe(4);
-    expect(problem.tier).toBe('maybe');
+    expect(problem.latestEpisodeSolved).toBe(false);
+    expect(problem.tier).toBe('must');
   });
 
   it('resets priority at the previous accepted solve', () => {
@@ -98,7 +100,8 @@ describe('analyze', () => {
     expect(problem.latestSubmissions).toBe(2);
     expect(problem.latestEpisodeStart).toBe(300);
     expect(problem.latestFailure).toBe(400);
-    expect(problem.tier).toBe('solid');
+    expect(problem.latestEpisodeSolved).toBe(true);
+    expect(problem.tier).toBe('maybe');
   });
 
   it('counts every failed try since the previous AC, even before the latest AC', () => {
@@ -128,7 +131,8 @@ describe('analyze', () => {
     expect(problem.failures).toBe(21);
     expect(problem.latestFailures).toBe(1);
     expect(problem.latestEpisodeStart).toBe(1000);
-    expect(problem.tier).toBe('solid');
+    expect(problem.latestEpisodeSolved).toBe(true);
+    expect(problem.tier).toBe('maybe');
   });
 
   it('counts failures after the latest AC as part of the latest solve', () => {
@@ -144,7 +148,8 @@ describe('analyze', () => {
     expect(problem.failures).toBe(2);
     expect(problem.latestFailures).toBe(2);
     expect(problem.latestFailure).toBe(300);
-    expect(problem.tier).toBe('maybe');
+    expect(problem.latestEpisodeSolved).toBe(false);
+    expect(problem.tier).toBe('must');
   });
 
   it('assigns the requested tier thresholds', () => {
@@ -158,11 +163,15 @@ describe('analyze', () => {
     expect(problem.tier).toBe('must');
   });
 
-  it('assigns tiers from latest-solve failures and solved status', () => {
-    expect(tierFor(3, true)).toBe('maybe');
-    expect(tierFor(3, false)).toBe('unsolved');
-    expect(tierFor(10, true)).toBe('must');
-    expect(tierFor(1, false)).toBe('tried-once');
+  it('assigns tiers from latest-episode length and solved status', () => {
+    expect(tierFor(1, true, true)).toBe('solid');
+    expect(tierFor(2, true, true)).toBe('maybe');
+    expect(tierFor(3, true, true)).toBe('should');
+    expect(tierFor(4, true, true)).toBe('should');
+    expect(tierFor(5, true, true)).toBe('must');
+    expect(tierFor(2, false, true)).toBe('must');
+    expect(tierFor(1, false, false)).toBe('tried-once');
+    expect(tierFor(2, false, false)).toBe('unsolved');
   });
 
   it('puts attempted but unsolved problems in their own tier', () => {
@@ -219,7 +228,7 @@ describe('analyze', () => {
     expect(problem.solvedByEnd).toBe(true);
     expect(problem.everSolved).toBe(true);
     expect(problem.solvedLater).toBe(false);
-    expect(problem.tier).toBe('solid');
+    expect(problem.tier).toBe('must');
     expect(result.totals.neverSolved).toBe(0);
   });
 
@@ -238,7 +247,8 @@ describe('analyze', () => {
     expect(problem.failures).toBe(2);
     expect(problem.latestFailures).toBe(2);
     expect(problem.latestFailure).toBe(ts(2026, 3));
-    expect(problem.tier).toBe('maybe');
+    expect(problem.latestEpisodeSolved).toBe(false);
+    expect(problem.tier).toBe('must');
   });
 
   it('does not let a solve after the window reset priority inside the window', () => {
@@ -256,7 +266,8 @@ describe('analyze', () => {
     expect(problem.latestFailures).toBe(1);
     expect(problem.latestFailure).toBe(ts(2026, 2));
     expect(problem.solvedByEnd).toBe(true);
-    expect(problem.tier).toBe('solid');
+    expect(problem.latestEpisodeSolved).toBe(false);
+    expect(problem.tier).toBe('must');
   });
 
   it('marks a problem solved after the window as never solved for that window', () => {
@@ -308,7 +319,7 @@ describe('analyze', () => {
     );
 
     expect(sortProblems(result.problems, 'failures')[0].index).toBe('B');
-    expect(sortProblems(result.problems, 'priority')[0].tier).toBe('maybe');
+    expect(sortProblems(result.problems, 'priority')[0].tier).toBe('should');
   });
 
   it('sorts by latest-solve failures instead of old failures', () => {
@@ -330,6 +341,30 @@ describe('analyze', () => {
     expect(oldFailures?.latestFailure).toBeUndefined();
     expect(latestFailures?.latestFailures).toBe(2);
     expect(sortProblems(result.problems, 'failures')[0].index).toBe('B');
+  });
+
+  it('filters the problem pool by a rating range', () => {
+    const result = analyze(
+      dataset([
+        submission(40, 'A', 'WRONG_ANSWER', 100, 'PRACTICE', 1000),
+        submission(41, 'B', 'WRONG_ANSWER', 200, 'PRACTICE', 1500),
+        submission(42, 'C', 'WRONG_ANSWER', 300, 'PRACTICE', 1800),
+        submission(43, 'D', 'WRONG_ANSWER', 400, 'PRACTICE', undefined),
+      ]),
+      10_000_000,
+      null,
+      { min: 1000, max: 1400 },
+    );
+
+    expect(result.problems.map((problem) => problem.index)).toEqual(['A']);
+    expect(result.totals.submissions).toBe(1);
+    expect(result.totals.failures).toBe(1);
+  });
+
+  it('builds a default rating focus around the user rating', () => {
+    expect(defaultRatingRange(1200)).toEqual({ min: 1000, max: 1400 });
+    expect(defaultRatingRange(1234)).toEqual({ min: 1000, max: 1500 });
+    expect(defaultRatingRange(undefined)).toEqual({ min: 800, max: 3500 });
   });
 
   it('aggregates tag statistics across problems', () => {

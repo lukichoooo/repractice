@@ -3,8 +3,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CfApiError, CfApiService } from '../../core/cf-api.service';
 import { CacheService, DATASET_TTL_MS } from '../../core/cache.service';
-import { ACTION_TIERS, analyze, tierCount } from '../../core/analysis';
-import type { Analysis, Dataset, MonthBounds, TimeWindow } from '../../core/models';
+import {
+  ACTION_TIERS,
+  RATING_CEILING,
+  RATING_FLOOR,
+  RATING_STEP,
+  analyze,
+  defaultRatingRange as defaultRatingRangeFor,
+  tierCount,
+} from '../../core/analysis';
+import type { Analysis, Dataset, MonthBounds, RatingRange, TimeWindow } from '../../core/models';
 import { addRecentHandle } from '../../core/recent';
 import { formatDate, rankLabel, ratingColor, timeAgo } from '../../core/format';
 import {
@@ -68,8 +76,13 @@ export class DashboardPage {
   readonly now = signal(Date.now());
   readonly timeWindow = signal<TimeWindow | null>(null);
   readonly fallbackNotice = signal(false);
+  readonly ratingRange = signal<RatingRange | null>(null);
+  readonly ratingFloor = RATING_FLOOR;
+  readonly ratingCeiling = RATING_CEILING;
+  readonly ratingStep = RATING_STEP;
 
   private loadSequence = 0;
+  private ratingRangeInitialized = false;
 
   readonly bounds = computed<MonthBounds | null>(() => {
     const dataset = this.dataset();
@@ -79,7 +92,7 @@ export class DashboardPage {
   readonly analysis = computed<Analysis | null>(() => {
     const dataset = this.dataset();
     if (!dataset) return null;
-    return analyze(dataset, this.now(), this.timeWindow());
+    return analyze(dataset, this.now(), this.timeWindow(), this.ratingRange());
   });
 
   readonly windowLabel = computed(() => {
@@ -89,8 +102,11 @@ export class DashboardPage {
   });
 
   readonly windowEmpty = computed(() => {
-    const analysis = this.analysis();
-    return !!analysis && analysis.totals.submissions === 0;
+    const dataset = this.dataset();
+    if (!dataset) return false;
+    const window = this.timeWindow();
+    if (!window) return dataset.submissions.length === 0;
+    return !hasSubmissionsInWindow(dataset.submissions, window);
   });
 
   readonly busy = computed(() => this.status() === 'loading' || this.status() === 'refreshing');
@@ -138,6 +154,8 @@ export class DashboardPage {
       this.activeTab.set('summary');
       this.timeWindow.set(null);
       this.fallbackNotice.set(false);
+      this.ratingRange.set(null);
+      this.ratingRangeInitialized = false;
       void this.load(handle);
     });
   }
@@ -156,6 +174,50 @@ export class DashboardPage {
     if (!bounds) return;
     this.timeWindow.set({ start: bounds.min, end: bounds.max });
     this.fallbackNotice.set(false);
+  }
+
+  setRatingMin(event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    const current = this.ratingRange() ?? this.defaultRatingRange();
+    this.ratingRangeInitialized = true;
+    this.ratingRange.set({ min: Math.min(value, current.max), max: current.max });
+  }
+
+  setRatingMax(event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    const current = this.ratingRange() ?? this.defaultRatingRange();
+    this.ratingRangeInitialized = true;
+    this.ratingRange.set({ min: current.min, max: Math.max(value, current.min) });
+  }
+
+  resetRatingRange(): void {
+    this.ratingRangeInitialized = true;
+    this.ratingRange.set(this.currentUserRating() == null ? null : this.defaultRatingRange());
+  }
+
+  showAllRatings(): void {
+    this.ratingRangeInitialized = true;
+    this.ratingRange.set(null);
+  }
+
+  private currentUserRating(): number | undefined {
+    const dataset = this.dataset();
+    return (
+      dataset?.user.rating ??
+      (dataset?.ratingHistory.length
+        ? dataset.ratingHistory[dataset.ratingHistory.length - 1].newRating
+        : undefined)
+    );
+  }
+
+  private defaultRatingRange(): RatingRange {
+    return defaultRatingRangeFor(this.currentUserRating());
+  }
+
+  private ensureRatingRange(): void {
+    if (this.ratingRangeInitialized) return;
+    this.ratingRangeInitialized = true;
+    this.ratingRange.set(this.currentUserRating() == null ? null : this.defaultRatingRange());
   }
 
   refresh(): void {
@@ -210,6 +272,7 @@ export class DashboardPage {
     if (cached) {
       this.initializeWindow(cached);
       this.dataset.set(cached);
+      this.ensureRatingRange();
       document.title = `${cached.handle} — Codeforces Repractice`;
       const age = Date.now() - cached.fetchedAt;
       if (!force && age < DATASET_TTL_MS) {
@@ -255,6 +318,7 @@ export class DashboardPage {
 
       this.initializeWindow(dataset);
       this.dataset.set(dataset);
+      this.ensureRatingRange();
       this.status.set('ready');
       this.progress.set('');
       document.title = `${user.handle} — Codeforces Repractice`;
