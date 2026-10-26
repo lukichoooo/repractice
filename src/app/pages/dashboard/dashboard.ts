@@ -79,7 +79,7 @@ export class DashboardPage {
   readonly analysis = computed<Analysis | null>(() => {
     const dataset = this.dataset();
     if (!dataset) return null;
-    return analyze(dataset, this.now(), this.timeWindow());
+    return analyze(dataset, this.now(), this.timeWindow(), this.filterState());
   });
 
   readonly windowLabel = computed(() => {
