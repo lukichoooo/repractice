@@ -152,6 +152,25 @@ describe('analyze', () => {
     expect(problem.tier).toBe('must');
   });
 
+  it('treats a clean re-solve after an older failure streak as solid', () => {
+    const result = analyze(
+      dataset([
+        submission(7, 'A', 'WRONG_ANSWER', 100),
+        submission(7, 'A', 'WRONG_ANSWER', 200),
+        submission(7, 'A', 'OK', 300),
+        submission(7, 'A', 'OK', 400),
+      ]),
+      10_000_000,
+    );
+
+    const problem = result.problems[0];
+    expect(problem.failures).toBe(2);
+    expect(problem.latestSubmissions).toBe(1);
+    expect(problem.latestFailures).toBe(0);
+    expect(problem.latestEpisodeSolved).toBe(true);
+    expect(problem.tier).toBe('solid');
+  });
+
   it('assigns the requested tier thresholds', () => {
     const rows: CfSubmission[] = [];
     let time = 100;
